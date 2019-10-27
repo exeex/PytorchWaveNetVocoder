@@ -17,3 +17,4 @@ egs/*/*/downloads
 .pytest_cache/
 .eggs/
 *.egg-info/
+.idea
