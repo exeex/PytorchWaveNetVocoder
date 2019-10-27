@@ -10,7 +10,7 @@ import torch
 
 from wavenet_vocoder.nets import encode_mu_law
 from wavenet_vocoder.nets import initialize
-from wavenet_vocoder.nets import WaveNet
+from wavenet_vocoder.nets import WaveNet, WaveNetPulse
 
 # set log level
 logging.basicConfig(level=logging.DEBUG,
@@ -67,6 +67,23 @@ def test_forward():
     net.apply(initialize)
     net.eval()
     y = net(batch_input, batch_aux)[0]
+    assert y.size(0) == batch_input.size(1)
+    assert y.size(1) == 256
+
+
+def test_foward_pulse():
+    # get batch
+    generator = sine_generator(100)
+    batch = next(generator)
+    batch_input = batch.view(1, -1)
+    batch_aux = torch.rand(1, 28, batch_input.size(1) // 10).float()
+    # define model with upsampling and kernel size = 3
+    net = WaveNetPulse(256, 28, 64, 32, 128, 10, 1, 3, 10)
+    net.apply(initialize)
+    net.eval()
+
+    print(batch_input.shape)
+    y = net(batch_input, batch_aux, torch.zeros(1, 64, 100))[0]
     assert y.size(0) == batch_input.size(1)
     assert y.size(1) == 256
 
@@ -251,3 +268,7 @@ def test_assert_different_length_batch_generation():
         # assertion
         for gen1, gen2 in zip(gen1_list, gen2_list):
             np.testing.assert_array_equal(gen1, gen2)
+
+
+if __name__ == '__main__':
+    test_foward_pulse()
