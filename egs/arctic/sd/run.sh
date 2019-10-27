@@ -25,7 +25,7 @@ stage=0123456
 #######################################
 #          FEATURE SETTING            #
 #######################################
-feature_type=world     # world or melspc (in this recipe fixed to "world")
+feature_type=world_pulse     # world or melspc (in this recipe fixed to "world")
 spk=slt                # target spekaer in arctic
 minf0=""               # minimum f0 (if not set, conf/*.f0 will be used)
 maxf0=""               # maximum f0 (if not set, conf/*.f0 will be used)
@@ -79,11 +79,11 @@ tag=""                   # tag for network directory naming (Optional)
 . parse_options.sh || exit 1;
 
 # check feature type
-if [ ${feature_type} != "world" ]; then
-    echo "This recipe does not support feature_type=\"melspc\"." 2>&1
-    echo "Please try the egs/arctic/sd-melspc." 2>&1
-    exit 1;
-fi
+#if [ ${feature_type} != "world" ]; then
+#    echo "This recipe does not support feature_type=\"melspc\"." 2>&1
+#    echo "Please try the egs/arctic/sd-melspc." 2>&1
+#    exit 1;
+#fi
 
 # set directory names
 train=tr_${spk}

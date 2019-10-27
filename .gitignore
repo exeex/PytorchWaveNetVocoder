@@ -11,7 +11,7 @@ egs/*/*/wav/
 egs/*/*/wav_ns/
 egs/*/*/wav_hpf/
 egs/*/*/wav_nwf/
-egs/*/*/hdf5/
+egs/arctic/sd/hdf5_old/
 egs/*/*/downloads/
 egs/*/*/downloads
 .pytest_cache/
