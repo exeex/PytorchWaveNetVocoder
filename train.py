@@ -36,6 +36,7 @@ expdir = "/home/cswu/research/PytorchWaveNetVocoder"
 
 os.chdir('egs/arctic/sd')
 
+
 class WaveNetTrainer:
 
     def __init__(self):
@@ -224,6 +225,12 @@ class WaveNetTrainer:
         else:
             return 0
 
+    def get_loss(self, y_pred, y_target):
+
+        return self.criterion(
+            y_pred[:, self.model.receptive_field:].contiguous().view(-1, self.args.n_quantize),
+            y_target[:, self.model.receptive_field:].contiguous().view(-1))
+
     def train_loop(self, start_iteration):
 
         # train
@@ -231,11 +238,9 @@ class WaveNetTrainer:
         total = 0
         for i in six.moves.range(start_iteration, self.args.iters):
             start = time.time()
-            (batch_x, batch_h), batch_t = self.dataloader.next()
-            batch_output = self.model(batch_x, batch_h)
-            batch_loss = self.criterion(
-                batch_output[:, self.model.receptive_field:].contiguous().view(-1, self.args.n_quantize),
-                batch_t[:, self.model.receptive_field:].contiguous().view(-1))
+            (x, h), y_target = self.dataloader.next()
+            y_pred = self.model(x, h)
+            batch_loss = self.get_loss(y_pred, y_target)
             self.optimizer.zero_grad()
             batch_loss.backward()
             self.optimizer.step()
@@ -246,7 +251,7 @@ class WaveNetTrainer:
 
             # report progress
             if (i + 1) % self.args.intervals == 0:
-                logging.info("(iter:%d) average loss = %.6f (%.3f sec / batch)" % (
+                logging.info(f"(iter:%d) average loss = %.6f (%.3f sec / batch)" % (
                     i + 1, loss / self.args.intervals, total / self.args.intervals))
                 logging.info("estimated required time = "
                              "{0.days:02}:{0.hours:02}:{0.minutes:02}:{0.seconds:02}"
@@ -291,7 +296,6 @@ def save_checkpoint(checkpoint_dir, model, optimizer, iterations):
 
 
 def main():
-
     trainer = WaveNetTrainer()
     load = True
     if load:
