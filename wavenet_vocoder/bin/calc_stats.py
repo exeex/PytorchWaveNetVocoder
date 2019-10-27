@@ -49,7 +49,7 @@ def main():
         "--stats", default=None, required=True,
         type=str, help="filename of hdf5 format")
     parser.add_argument(
-        "--feature_type", default="world", choices=["world", "melspc", "mcep"],
+        "--feature_type", default="world", choices=["world", "melspc", "mcep", "world_pulse"],
         type=str, help="feature type")
     parser.add_argument(
         "--verbose", default=1,

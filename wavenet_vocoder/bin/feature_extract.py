@@ -242,7 +242,7 @@ def world_feature_extract_with_pulse(wav_list, args):
 
         # save to hdf5
         hdf5name = args.hdf5dir + "/" + os.path.basename(wav_name).replace(".wav", ".h5")
-        write_hdf5(hdf5name, "/world", feats)
+        write_hdf5(hdf5name, "/world_pulse", feats)
 
         # overwrite wav file
         # if args.highpass_cutoff != 0 and args.save_wav:

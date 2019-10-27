@@ -5,6 +5,7 @@ import logging
 import soundfile as sf
 from wavenet_vocoder.utils import read_hdf5
 import torch
+from scipy.io import wavfile as wf
 
 def validate_length(x, y, upsampling_factor=None):
     """VALIDATE LENGTH.
@@ -88,11 +89,15 @@ def train_generator(wav_list, feat_list, receptive_field,
         logging.warning("in utterance batch mode, batchsize will be 1.")
 
     while True:
-        batch_x, batch_h, batch_t = [], [], []
+        batch_x,batch_p, batch_h, batch_t = [], [], [], []
         # process over all of files
         for wavfile, featfile in zip(wav_list, feat_list):
             # load waveform and aux feature
-            x, fs = sf.read(wavfile, dtype=np.float32)
+            # x, fs = sf.read(wavfile, dtype=np.float32)
+            fs, data = wf.read(wavfile)
+            # print(data.shape)
+            x = data[:, 0].astype(np.float) / 32768
+            p = data[:, 1].astype(np.float)
             h = read_hdf5(featfile, "/" + feature_type)
             if not use_upsampling_layer:
                 h = extend_time(h, upsampling_factor)
@@ -163,24 +168,28 @@ def train_generator(wav_list, feat_list, receptive_field,
                         batch_x, batch_h, batch_t = [], [], []
 
             # ------------------------------------
-            # use mini batch with upsampling layer
+            # use mini batch with upsampling layer <-------This TODO
             # ------------------------------------
             elif batch_length is not None and use_upsampling_layer:
                 # make buffer array
                 if "x_buffer" not in locals():
                     x_buffer = np.empty((0), dtype=np.float32)
+                    p_buffer = np.empty((0), dtype=np.float32)
                     h_buffer = np.empty((0, h.shape[1]), dtype=np.float32)
                 x_buffer = np.concatenate([x_buffer, x], axis=0)
+                p_buffer = np.concatenate([p_buffer, p], axis=0)
                 h_buffer = np.concatenate([h_buffer, h], axis=0)
 
                 while len(h_buffer) > (receptive_field + batch_length) // upsampling_factor:
                     # set batch size
                     h_bs = (receptive_field + batch_length) // upsampling_factor
                     x_bs = h_bs * upsampling_factor + 1
+                    p_bs = h_bs * upsampling_factor + 1
 
                     # get pieces
                     h_ = h_buffer[:h_bs]
                     x_ = x_buffer[:x_bs]
+                    p_ = p_buffer[:p_bs]
 
                     # perform pre-processing
                     if wav_transform is not None:
@@ -190,36 +199,42 @@ def train_generator(wav_list, feat_list, receptive_field,
 
                     # convert to torch variable
                     x_ = torch.from_numpy(x_).long()
+                    p_ = torch.from_numpy(p_).float()
                     h_ = torch.from_numpy(h_).float()
 
                     # remove the last and first sample for training
                     batch_h += [h_.transpose(0, 1)]  # (D x T)
                     batch_x += [x_[:-1]]  # (T)
+                    batch_p += [p_[:-1]]  # (T)
                     batch_t += [x_[1:]]  # (T)
 
                     # set shift size
                     h_ss = batch_length // upsampling_factor
                     x_ss = h_ss * upsampling_factor
+                    p_ss = h_ss * upsampling_factor
 
                     # update buffer
                     h_buffer = h_buffer[h_ss:]
                     x_buffer = x_buffer[x_ss:]
+                    p_buffer = p_buffer[p_ss:]
 
                     # return mini batch
                     if len(batch_x) == batch_size:
                         batch_x = torch.stack(batch_x)
+                        batch_p = torch.stack(batch_p)
                         batch_h = torch.stack(batch_h)
                         batch_t = torch.stack(batch_t)
 
                         # send to cuda
                         if torch.cuda.is_available():
                             batch_x = batch_x.cuda()
+                            batch_p = batch_p.cuda()
                             batch_h = batch_h.cuda()
                             batch_t = batch_t.cuda()
 
-                        yield (batch_x, batch_h), batch_t
+                        yield (batch_x, batch_h, batch_p), batch_t
 
-                        batch_x, batch_h, batch_t = [], [], []
+                        batch_x, batch_h, batch_p, batch_t,  = [], [], [], []
 
             # --------------------------------------------
             # use utterance batch without upsampling layer

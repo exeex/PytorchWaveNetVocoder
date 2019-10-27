@@ -100,11 +100,11 @@ class WaveNetTrainer:
         parser.add_argument("--feats", default=feats, type=str, help="directory or list of aux feat files")
         parser.add_argument("--stats", default=stats, type=str, help="hdf5 file including statistics")
         parser.add_argument("--expdir", default=expdir, type=str, help="directory to save the model")
-        parser.add_argument("--feature_type", default="world", choices=["world", "melspc"], type=str,
+        parser.add_argument("--feature_type", default="world_pulse", choices=["world", "melspc","world_pulse"], type=str,
                             help="feature type")
         # network structure setting
         parser.add_argument("--n_quantize", default=256, type=int, help="number of quantization")
-        parser.add_argument("--n_aux", default=28, type=int, help="number of dimension of aux feats")
+        parser.add_argument("--n_aux", default=27, type=int, help="number of dimension of aux feats")
         parser.add_argument("--n_resch", default=512, type=int, help="number of channels of residual output")
         parser.add_argument("--n_skipch", default=256, type=int, help="number of channels of skip output")
         parser.add_argument("--dilation_depth", default=10, type=int, help="depth of dilation")
@@ -182,6 +182,7 @@ class WaveNetTrainer:
             filenames = sorted(find_files(args.waveforms, "*.wav", use_dir_name=False))
             wav_list = [args.waveforms + "/" + filename for filename in filenames]
             feat_list = [args.feats + "/" + filename.replace(".wav", ".h5") for filename in filenames]
+
         elif os.path.isfile(args.waveforms):
             wav_list = read_txt(args.waveforms)
             feat_list = read_txt(args.feats)
@@ -238,8 +239,8 @@ class WaveNetTrainer:
         total = 0
         for i in six.moves.range(start_iteration, self.args.iters):
             start = time.time()
-            (x, h), y_target = self.dataloader.next()
-            y_pred = self.model(x, h)
+            (x, h, p), y_target = self.dataloader.next()
+            y_pred = self.model(x, h, p)
             batch_loss = self.get_loss(y_pred, y_target)
             self.optimizer.zero_grad()
             batch_loss.backward()
@@ -295,9 +296,10 @@ def save_checkpoint(checkpoint_dir, model, optimizer, iterations):
     logging.info("%d-iter checkpoint created." % iterations)
 
 
-def main():
+
+if __name__ == "__main__":
     trainer = WaveNetTrainer()
-    load = True
+    load = False
     if load:
         start_iterations = trainer.load_parameter()
     else:
@@ -305,6 +307,4 @@ def main():
 
     trainer.train_loop(start_iterations)
 
-
-if __name__ == "__main__":
-    main()
+    loader = trainer.get_dataloader()
