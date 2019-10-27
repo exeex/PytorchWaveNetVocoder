@@ -246,7 +246,7 @@ def world_feature_extract_with_pulse(wav_list, args):
 
         # overwrite wav file
         # if args.highpass_cutoff != 0 and args.save_wav:
-        print(pulse.max(), pulse.min(), x.max(), x.min())
+        # print(pulse.max(), pulse.min(), x.max(), x.min())
         pulse = pulse[:x.shape[0]]  # make length identical to x
         stereo = np.concatenate([x[:, np.newaxis].astype(np.int16), pulse[:, np.newaxis]], axis=1)
         wavfile.write(args.wavdir + "/" + os.path.basename(wav_name), fs, stereo)
