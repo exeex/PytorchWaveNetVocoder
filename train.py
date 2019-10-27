@@ -335,10 +335,12 @@ def save_checkpoint(checkpoint_dir, model, optimizer, iterations):
 def main():
     """RUN TRAINING."""
 
-    waveforms = "egs/arctic/sd/data/ev_slt/wav_hpf.scp"
-    feats = "egs/arctic/sd/data/tr_slt/feats.scp"
-    stats = "egs/arctic/sd/data/tr_slt/stats.h5"
-    expdir = "./exp"
+    waveforms = "data/tr_slt/wav_hpf.scp"
+    feats = "data/tr_slt/feats.scp"
+    stats = "data/tr_slt/stats.h5"
+    expdir = "/home/cswu/research/PytorchWaveNetVocoder"
+
+    os.chdir('egs/arctic/sd')
 
     parser = argparse.ArgumentParser()
     # path setting
