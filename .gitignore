@@ -1,6 +1,12 @@
 *.pyc
 slurm-*.out
 .DS_Store
+*.h5
+*.wav
+*.log
+*.scp
+*.pkl
+*.conf
 exp/
 snippet.sh
 tools/venv
