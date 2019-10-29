@@ -32,7 +32,7 @@ from wavenet_vocoder.utils import read_hdf5
 waveforms = "data/tr_slt/wav_hpf.scp"
 feats = "data/tr_slt/feats.scp"
 stats = "data/tr_slt/stats.h5"
-expdir = "/home/cswu/research/PytorchWaveNetVocoder"
+expdir = "/home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3"
 
 os.chdir('egs/arctic/sd')
 
@@ -108,7 +108,7 @@ class WaveNetTrainer:
         parser.add_argument("--n_resch", default=512, type=int, help="number of channels of residual output")
         parser.add_argument("--n_skipch", default=256, type=int, help="number of channels of skip output")
         parser.add_argument("--dilation_depth", default=10, type=int, help="depth of dilation")
-        parser.add_argument("--dilation_repeat", default=1, type=int, help="number of repeating of dilation")
+        parser.add_argument("--dilation_repeat", default=3, type=int, help="number of repeating of dilation")
         parser.add_argument("--kernel_size", default=2, type=int, help="kernel size of dilated causal convolution")
         parser.add_argument("--upsampling_factor", default=80, type=int, help="upsampling factor of aux features")
         parser.add_argument("--use_upsampling_layer", default=True, type=strtobool, help="flag to use upsampling layer")
