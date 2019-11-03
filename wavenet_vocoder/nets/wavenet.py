@@ -71,7 +71,7 @@ class WaveNet(nn.Module):
         self.conv_post_1 = nn.Conv1d(self.n_skipch, self.n_skipch, 1)
         self.conv_post_2 = nn.Conv1d(self.n_skipch, self.n_quantize, 1)
 
-    def forward(self, x, h, p=None):
+    def forward(self, x, h, *args):
         """FORWARD CALCULATION.
 
         Args:
@@ -103,7 +103,7 @@ class WaveNet(nn.Module):
 
         return output
 
-    def generate(self, x, h, n_samples, intervals=None, mode="sampling"):
+    def generate(self, x, h, n_samples, *args, intervals=None, mode="sampling"):
         """GENERATE WAVEFORM WITH NAIVE CALCULATION.
 
         Args:
@@ -169,7 +169,7 @@ class WaveNet(nn.Module):
 
         return np.array(samples[-n_samples:])
 
-    def fast_generate(self, x, h, n_samples, intervals=None, mode="sampling"):
+    def fast_generate(self, x, h, n_samples, *args, intervals=None, mode="sampling"):
         """GENERATE WAVEFORM WITH FAST ALGORITHM.
 
         Args:
@@ -257,7 +257,7 @@ class WaveNet(nn.Module):
 
         return samples[-n_samples:].cpu().numpy()
 
-    def batch_fast_generate(self, x, h, n_samples_list, intervals=None, mode="sampling"):
+    def batch_fast_generate(self, x, h, n_samples_list, *args, intervals=None, mode="sampling"):
         """GENERATE WAVEFORM WITH FAST ALGORITHM IN BATCH MODE.
 
         Args:
@@ -386,7 +386,7 @@ class WaveNet(nn.Module):
         return output
 
     def _residual_forward(self, x, h, dil_sigmoid, dil_tanh,
-                          aux_1x1_sigmoid, aux_1x1_tanh, skip_1x1, res_1x1):
+                          aux_1x1_sigmoid, aux_1x1_tanh, skip_1x1, res_1x1, *args):
         """
         Visualization of tensor connection:
 
@@ -424,7 +424,7 @@ class WaveNet(nn.Module):
         return output, skip
 
     def _generate_residual_forward(self, x, h, dil_sigmoid, dil_tanh,
-                                   aux_1x1_sigmoid, aux_1x1_tanh, skip_1x1, res_1x1):
+                                   aux_1x1_sigmoid, aux_1x1_tanh, skip_1x1, res_1x1, *args):
         output_sigmoid = dil_sigmoid(x)[:, :, -1:]
         output_tanh = dil_tanh(x)[:, :, -1:]
         aux_output_sigmoid = aux_1x1_sigmoid(h)

@@ -21,8 +21,8 @@ from sklearn.preprocessing import StandardScaler
 from torch import nn
 from torchvision import transforms
 
-from wavenet_vocoder.nets import encode_mu_law
-from wavenet_vocoder.nets import initialize
+from wavenet_vocoder.nets.wavenet_utils import encode_mu_law
+from wavenet_vocoder.nets.wavenet_utils import initialize
 from wavenet_vocoder.nets import WaveNet
 from wavenet_vocoder.utils import find_files
 from wavenet_vocoder.utils import read_txt
@@ -32,7 +32,7 @@ from wavenet_vocoder.utils import read_hdf5
 waveforms = "data/tr_slt/wav_hpf.scp"
 feats = "data/tr_slt/feats.scp"
 stats = "data/tr_slt/stats.h5"
-expdir = "/home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3"
+expdir = "/home/cswu/research/PytorchWaveNetVocoder/tttt"
 
 os.chdir('egs/arctic/sd')
 
@@ -100,7 +100,8 @@ class WaveNetTrainer:
         parser.add_argument("--feats", default=feats, type=str, help="directory or list of aux feat files")
         parser.add_argument("--stats", default=stats, type=str, help="hdf5 file including statistics")
         parser.add_argument("--expdir", default=expdir, type=str, help="directory to save the model")
-        parser.add_argument("--feature_type", default="world_pulse", choices=["world", "melspc","world_pulse"], type=str,
+        parser.add_argument("--feature_type", default="world_pulse", choices=["world", "melspc", "world_pulse"],
+                            type=str,
                             help="feature type")
         # network structure setting
         parser.add_argument("--n_quantize", default=256, type=int, help="number of quantization")
@@ -294,7 +295,6 @@ def save_checkpoint(checkpoint_dir, model, optimizer, iterations):
         os.makedirs(checkpoint_dir)
     torch.save(checkpoint, checkpoint_dir + "/checkpoint-%d.pkl" % iterations)
     logging.info("%d-iter checkpoint created." % iterations)
-
 
 
 if __name__ == "__main__":

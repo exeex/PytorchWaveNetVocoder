@@ -54,12 +54,11 @@ class WaveNetPulse(WaveNet):
         # residual block
         skip_connections = []
         for l in range(len(self.dilations)):
-            output, skip = self._residual_forward_pulse(
-                output, h, p,
-                self.dil_sigmoid[l], self.dil_tanh[l],
-                self.aux_1x1_sigmoid[l], self.aux_1x1_tanh[l],
-                self.p_1x1_sigmoid[l], self.p_1x1_tanh[l],
-                self.skip_1x1[l], self.res_1x1[l])
+            output, skip = self._residual_forward(output, h,
+                                                  self.dil_sigmoid[l], self.dil_tanh[l],
+                                                  self.aux_1x1_sigmoid[l], self.aux_1x1_tanh[l],
+                                                  self.skip_1x1[l], self.res_1x1[l],
+                                                  p, self.p_1x1_sigmoid[l], self.p_1x1_tanh[l], )
             skip_connections.append(skip)
 
         # skip-connection part
@@ -68,12 +67,11 @@ class WaveNetPulse(WaveNet):
 
         return output
 
-    @staticmethod
-    def _residual_forward_pulse(x, h, p,
-                                dil_sigmoid, dil_tanh,
-                                aux_1x1_sigmoid, aux_1x1_tanh,
-                                p_1x1_sigmoid, p_1x1_tanh,
-                                skip_1x1, res_1x1):
+    def _residual_forward(self, x, h,
+                          dil_sigmoid, dil_tanh,
+                          aux_1x1_sigmoid, aux_1x1_tanh,
+                          skip_1x1, res_1x1,
+                          p=None, p_1x1_sigmoid=None, p_1x1_tanh=None):
         """
 
         Visualization of tensor connection:
@@ -88,18 +86,7 @@ class WaveNetPulse(WaveNet):
        [p]_____(1x1)____________|    |                 |
             |__(1x1)________________(+)______(sigm)____|
 
-        :param x:
-        :param h:
-        :param p:
-        :param dil_sigmoid:
-        :param dil_tanh:
-        :param aux_1x1_sigmoid:
-        :param aux_1x1_tanh:
-        :param p_1x1_sigmoid:
-        :param p_1x1_tanh:
-        :param skip_1x1:
-        :param res_1x1:
-        :return:
+
         """
         output_sigmoid = dil_sigmoid(x)
         aux_output_sigmoid = aux_1x1_sigmoid(h)
@@ -109,27 +96,10 @@ class WaveNetPulse(WaveNet):
         aux_output_tanh = aux_1x1_tanh(h)
         p_output_tanh = p_1x1_tanh(p)
 
-        print(output_sigmoid.shape, aux_output_sigmoid.shape, p_output_sigmoid.shape)
+        # print(output_sigmoid.shape, aux_output_sigmoid.shape, p_output_sigmoid.shape)
         output = torch.sigmoid(output_sigmoid + aux_output_sigmoid + p_output_sigmoid) * \
                  torch.tanh(output_tanh + aux_output_tanh + p_output_tanh)
         skip = skip_1x1(output)
         output = res_1x1(output)
         output = output + x
-        return output, skip
-
-    def _generate_residual_forward(self, x, h, dil_sigmoid, dil_tanh,
-                                   aux_1x1_sigmoid, aux_1x1_tanh, skip_1x1, res_1x1, p=None, p_1x1_tanh=None):
-
-        output_sigmoid = dil_sigmoid(x)[:, :, -1:]
-        output_tanh = dil_tanh(x)[:, :, -1:]
-        p_output_tanh = p_1x1_tanh(p)
-
-        aux_output_sigmoid = aux_1x1_sigmoid(h)
-        aux_output_tanh = aux_1x1_tanh(h)
-
-        output = torch.sigmoid(output_sigmoid + aux_output_sigmoid) * \
-                 torch.tanh(output_tanh + aux_output_tanh)
-        skip = skip_1x1(output)
-        output = res_1x1(output)
-        output = output + x[:, :, -1:]  # B x C x 1
         return output, skip
