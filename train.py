@@ -33,7 +33,8 @@ waveforms = "data/tr_slt/wav_hpf.scp"
 feats = "data/tr_slt/feats.scp"
 stats = "data/tr_slt/stats.h5"
 expdir = "/home/cswu/research/PytorchWaveNetVocoder/tttt"
-
+resume = "/home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3/checkpoint-200000.pkl"
+# resume = None
 os.chdir('egs/arctic/sd')
 
 
@@ -126,7 +127,7 @@ class WaveNetTrainer:
         parser.add_argument("--checkpoint_interval", default=10000, type=int, help="how frequent saving model")
         parser.add_argument("--intervals", default=100, type=int, help="log interval")
         parser.add_argument("--seed", default=1, type=int, help="seed number")
-        parser.add_argument("--resume", default=None, nargs="?", type=str, help="model path to restart training")
+        parser.add_argument("--resume", default=resume, nargs="?", type=str, help="model path to restart training")
         parser.add_argument("--n_gpus", default=1, type=int, help="number of gpus")
         parser.add_argument("--verbose", default=1, type=int, help="log level")
         return parser.parse_args()
@@ -299,9 +300,10 @@ def save_checkpoint(checkpoint_dir, model, optimizer, iterations):
 
 if __name__ == "__main__":
     trainer = WaveNetTrainer()
-    load = False
+    load = True
     if load:
         start_iterations = trainer.load_parameter()
+        start_iterations = 0
     else:
         start_iterations = 0
 
