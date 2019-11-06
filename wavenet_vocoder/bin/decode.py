@@ -18,8 +18,8 @@ import torch.multiprocessing as mp
 from sklearn.preprocessing import StandardScaler
 from torchvision import transforms
 
-from wavenet_vocoder.nets import decode_mu_law
-from wavenet_vocoder.nets import encode_mu_law
+from wavenet_vocoder.nets.wavenet_utils import decode_mu_law
+from wavenet_vocoder.nets.wavenet_utils import encode_mu_law
 from wavenet_vocoder.nets import WaveNet
 from wavenet_vocoder.utils import extend_time
 from wavenet_vocoder.utils import find_files

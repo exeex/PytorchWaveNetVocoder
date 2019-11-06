@@ -22,8 +22,8 @@ from sklearn.preprocessing import StandardScaler
 from torch import nn
 from torchvision import transforms
 
-from wavenet_vocoder.nets import encode_mu_law
-from wavenet_vocoder.nets import initialize
+from wavenet_vocoder.nets.wavenet_utils import encode_mu_law
+from wavenet_vocoder.nets.wavenet_utils import initialize
 from wavenet_vocoder.nets import WaveNet
 from wavenet_vocoder.utils import background
 from wavenet_vocoder.utils import extend_time
