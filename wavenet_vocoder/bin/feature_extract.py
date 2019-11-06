@@ -191,6 +191,11 @@ def world_feature_extract(wav_list, args):
         uv = np.expand_dims(uv, axis=-1)
         feats = np.concatenate([uv, cont_f0_lpf, mcep, codeap], axis=1)
 
+        # uv: 710x1
+        # cont_f0_lpf: 710x1
+        # mcep :710x25
+        # codeap :710x1
+
         # save to hdf5
         hdf5name = args.hdf5dir + "/" + os.path.basename(wav_name).replace(".wav", ".h5")
         write_hdf5(hdf5name, "/world", feats)
@@ -240,6 +245,7 @@ def world_feature_extract_with_pulse(wav_list, args):
         # concatenate
         # cont_f0_lpf = np.expand_dims(cont_f0_lpf, axis=-1)
         uv = np.expand_dims(uv, axis=-1)
+
         feats = np.concatenate([uv, mcep, codeap], axis=1)  # cont_f0_lpf,
 
         # save to hdf5
@@ -446,77 +452,77 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
 
-    # parser = argparse.ArgumentParser(
-    #     description="making feature file argsurations.")
-    #
-    # parser.add_argument(
-    #     "--waveforms", default=None,
-    #     help="directory or list of filename of input wavfile")
-    # parser.add_argument(
-    #     "--hdf5dir", default=None,
-    #     help="directory to save hdf5")
-    # parser.add_argument(
-    #     "--wavdir", default=None,
-    #     help="directory to save of preprocessed wav file")
-    # parser.add_argument(
-    #     "--fs", default=16000,
-    #     type=int, help="Sampling frequency")
-    # parser.add_argument(
-    #     "--shiftms", default=5,
-    #     type=float, help="Frame shift in msec")
-    # parser.add_argument(
-    #     "--feature_type", default="world", choices=["world", "melspc", "mcep"],
-    #     type=str, help="feature type")
-    # parser.add_argument(
-    #     "--mspc_dim", default=80,
-    #     type=int, help="Dimension of mel spectrogram")
-    # parser.add_argument(
-    #     "--minf0", default=40,
-    #     type=int, help="minimum f0 for world analysis")
-    # parser.add_argument(
-    #     "--maxf0", default=400,
-    #     type=int, help="maximum f0 for world analysis")
-    # parser.add_argument(
-    #     "--fmin", default=None, nargs="?",
-    #     type=int, help="minimum frequency for melspc")
-    # parser.add_argument(
-    #     "--fmax", default=None, nargs="?",
-    #     type=int, help="maximum frequency for melspc")
-    # parser.add_argument(
-    #     "--mcep_dim", default=24,
-    #     type=int, help="Dimension of mel cepstrum")
-    # parser.add_argument(
-    #     "--mcep_alpha", default=0.41,
-    #     type=float, help="Alpha of mel cepstrum")
-    # parser.add_argument(
-    #     "--fftl", default=1024,
-    #     type=int, help="FFT length")
-    # parser.add_argument(
-    #     "--highpass_cutoff", default=70,
-    #     type=int, help="Cut off frequency in lowpass filter")
-    # parser.add_argument(
-    #     "--save_wav", default=True,
-    #     type=strtobool, help="Whether to save filtered wav file")
-    # parser.add_argument(
-    #     "--n_jobs", default=10,
-    #     type=int, help="number of parallel jobs")
-    # parser.add_argument(
-    #     "--verbose", default=1,
-    #     type=int, help="log message level")
-    #
-    # args = parser.parse_args()
-    #
-    # data_folder = '/home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/wav_hpf/tr_slt'
-    #
-    # filenames = os.listdir(data_folder)
-    # # filenames = sorted(find_files(args.waveforms, "*.wav", use_dir_name=False))
-    # print(filenames)
-    #
-    # data_folder = '/home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/wav_hpf/tr_slt'
-    # args.hdf5dir = 'test'
-    # args.wavdir = data_folder
-    # wav_list = [os.path.join(data_folder, filename) for filename in filenames]
-    # wav_list = wav_list[:2]
-    # world_feature_extract_with_pulse(wav_list, args)
+    parser = argparse.ArgumentParser(
+        description="making feature file argsurations.")
+
+    parser.add_argument(
+        "--waveforms", default=None,
+        help="directory or list of filename of input wavfile")
+    parser.add_argument(
+        "--hdf5dir", default=None,
+        help="directory to save hdf5")
+    parser.add_argument(
+        "--wavdir", default=None,
+        help="directory to save of preprocessed wav file")
+    parser.add_argument(
+        "--fs", default=16000,
+        type=int, help="Sampling frequency")
+    parser.add_argument(
+        "--shiftms", default=5,
+        type=float, help="Frame shift in msec")
+    parser.add_argument(
+        "--feature_type", default="world", choices=["world", "melspc", "mcep"],
+        type=str, help="feature type")
+    parser.add_argument(
+        "--mspc_dim", default=80,
+        type=int, help="Dimension of mel spectrogram")
+    parser.add_argument(
+        "--minf0", default=40,
+        type=int, help="minimum f0 for world analysis")
+    parser.add_argument(
+        "--maxf0", default=400,
+        type=int, help="maximum f0 for world analysis")
+    parser.add_argument(
+        "--fmin", default=None, nargs="?",
+        type=int, help="minimum frequency for melspc")
+    parser.add_argument(
+        "--fmax", default=None, nargs="?",
+        type=int, help="maximum frequency for melspc")
+    parser.add_argument(
+        "--mcep_dim", default=24,
+        type=int, help="Dimension of mel cepstrum")
+    parser.add_argument(
+        "--mcep_alpha", default=0.41,
+        type=float, help="Alpha of mel cepstrum")
+    parser.add_argument(
+        "--fftl", default=1024,
+        type=int, help="FFT length")
+    parser.add_argument(
+        "--highpass_cutoff", default=70,
+        type=int, help="Cut off frequency in lowpass filter")
+    parser.add_argument(
+        "--save_wav", default=True,
+        type=strtobool, help="Whether to save filtered wav file")
+    parser.add_argument(
+        "--n_jobs", default=10,
+        type=int, help="number of parallel jobs")
+    parser.add_argument(
+        "--verbose", default=1,
+        type=int, help="log message level")
+
+    args = parser.parse_args()
+
+    data_folder = '/home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/wav_hpf/tr_slt'
+
+    filenames = os.listdir(data_folder)
+    # filenames = sorted(find_files(args.waveforms, "*.wav", use_dir_name=False))
+    print(filenames)
+
+    data_folder = '/home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/wav_hpf/tr_slt'
+    args.hdf5dir = 'test'
+    args.wavdir = data_folder
+    wav_list = [os.path.join(data_folder, filename) for filename in filenames]
+    wav_list = wav_list[:2]
+    world_feature_extract(wav_list, args)

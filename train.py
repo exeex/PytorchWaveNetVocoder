@@ -101,12 +101,12 @@ class WaveNetTrainer:
         parser.add_argument("--feats", default=feats, type=str, help="directory or list of aux feat files")
         parser.add_argument("--stats", default=stats, type=str, help="hdf5 file including statistics")
         parser.add_argument("--expdir", default=expdir, type=str, help="directory to save the model")
-        parser.add_argument("--feature_type", default="world_pulse", choices=["world", "melspc", "world_pulse"],
+        parser.add_argument("--feature_type", default="world", choices=["world", "melspc"],
                             type=str,
                             help="feature type")
         # network structure setting
         parser.add_argument("--n_quantize", default=256, type=int, help="number of quantization")
-        parser.add_argument("--n_aux", default=27, type=int, help="number of dimension of aux feats")
+        parser.add_argument("--n_aux", default=28, type=int, help="number of dimension of aux feats")
         parser.add_argument("--n_resch", default=512, type=int, help="number of channels of residual output")
         parser.add_argument("--n_skipch", default=256, type=int, help="number of channels of skip output")
         parser.add_argument("--dilation_depth", default=10, type=int, help="depth of dilation")
@@ -115,6 +115,8 @@ class WaveNetTrainer:
         parser.add_argument("--upsampling_factor", default=80, type=int, help="upsampling factor of aux features")
         parser.add_argument("--use_upsampling_layer", default=True, type=strtobool, help="flag to use upsampling layer")
         parser.add_argument("--use_speaker_code", default=False, type=strtobool, help="flag to use speaker code")
+        parser.add_argument("--use_pulse", default=False, type=strtobool, help="using pulse signal")
+
         # network training setting
         parser.add_argument("--lr", default=1e-4, type=float, help="learning rate")
         parser.add_argument("--weight_decay", default=0.0, type=float, help="weight decay coefficient")
@@ -129,7 +131,7 @@ class WaveNetTrainer:
         parser.add_argument("--seed", default=1, type=int, help="seed number")
         parser.add_argument("--resume", default=resume, nargs="?", type=str, help="model path to restart training")
         parser.add_argument("--n_gpus", default=1, type=int, help="number of gpus")
-        parser.add_argument("--verbose", default=1, type=int, help="log level")
+        parser.add_argument("--verbose", default=-1, type=int, help="log level")
         return parser.parse_args()
 
     def save_arg(self):
@@ -204,7 +206,8 @@ class WaveNetTrainer:
             shuffle=True,
             upsampling_factor=args.upsampling_factor,
             use_upsampling_layer=args.use_upsampling_layer,
-            use_speaker_code=args.use_speaker_code)
+            use_speaker_code=args.use_speaker_code,
+            use_pulse=args.use_pulse)
 
         # charge minibatch in queue
         while not generator.queue.full():
@@ -300,7 +303,7 @@ def save_checkpoint(checkpoint_dir, model, optimizer, iterations):
 
 if __name__ == "__main__":
     trainer = WaveNetTrainer()
-    load = True
+    load = False
     if load:
         start_iterations = trainer.load_parameter()
         start_iterations = 0
