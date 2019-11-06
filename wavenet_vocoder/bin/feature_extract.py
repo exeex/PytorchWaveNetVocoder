@@ -179,10 +179,11 @@ def world_feature_extract(wav_list, args):
             sys.exit(1)
 
         # extract features
-        f0, _, _ = feature_extractor.analyze(x)
+        f0, sp, ap = feature_extractor.analyze(x)
         uv, cont_f0 = convert_to_continuos_f0(f0)
         cont_f0_lpf = low_pass_filter(cont_f0, int(1.0 / (args.shiftms * 0.001)), cutoff=20)
         codeap = feature_extractor.codeap()
+        pulse = pw.synthesize_pulse(f0, fs, frame_period=args.shiftms).astype(np.int8)
         mcep = feature_extractor.mcep(dim=args.mcep_dim, alpha=args.mcep_alpha)
 
         # concatenate
@@ -193,6 +194,7 @@ def world_feature_extract(wav_list, args):
         # save to hdf5
         hdf5name = args.hdf5dir + "/" + os.path.basename(wav_name).replace(".wav", ".h5")
         write_hdf5(hdf5name, "/world", feats)
+        write_hdf5(hdf5name, "/world_pulse", pulse)
 
         # overwrite wav file
         if args.highpass_cutoff != 0 and args.save_wav:
