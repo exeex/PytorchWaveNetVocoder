@@ -106,7 +106,7 @@ class WaveNetTrainer:
                             help="feature type")
         # network structure setting
         parser.add_argument("--n_quantize", default=256, type=int, help="number of quantization")
-        parser.add_argument("--n_aux", default=28, type=int, help="number of dimension of aux feats")
+        parser.add_argument("--n_aux", default=27, type=int, help="number of dimension of aux feats")
         parser.add_argument("--n_resch", default=512, type=int, help="number of channels of residual output")
         parser.add_argument("--n_skipch", default=256, type=int, help="number of channels of skip output")
         parser.add_argument("--dilation_depth", default=10, type=int, help="depth of dilation")
@@ -115,7 +115,7 @@ class WaveNetTrainer:
         parser.add_argument("--upsampling_factor", default=80, type=int, help="upsampling factor of aux features")
         parser.add_argument("--use_upsampling_layer", default=True, type=strtobool, help="flag to use upsampling layer")
         parser.add_argument("--use_speaker_code", default=False, type=strtobool, help="flag to use speaker code")
-        parser.add_argument("--use_pulse", default=False, type=strtobool, help="using pulse signal")
+        parser.add_argument("--use_pulse", default=True, type=strtobool, help="using pulse signal")
 
         # network training setting
         parser.add_argument("--lr", default=1e-4, type=float, help="learning rate")
@@ -131,7 +131,7 @@ class WaveNetTrainer:
         parser.add_argument("--seed", default=1, type=int, help="seed number")
         parser.add_argument("--resume", default=resume, nargs="?", type=str, help="model path to restart training")
         parser.add_argument("--n_gpus", default=1, type=int, help="number of gpus")
-        parser.add_argument("--verbose", default=-1, type=int, help="log level")
+        parser.add_argument("--verbose", default=1, type=int, help="log level")
         return parser.parse_args()
 
     def save_arg(self):
