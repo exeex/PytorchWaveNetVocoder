@@ -21,6 +21,7 @@ from torchvision import transforms
 from wavenet_vocoder.nets.wavenet_utils import decode_mu_law
 from wavenet_vocoder.nets.wavenet_utils import encode_mu_law
 from wavenet_vocoder.nets import WaveNet
+from wavenet_vocoder.nets.wavenet_pulse import WaveNetPulse
 from wavenet_vocoder.utils import extend_time
 from wavenet_vocoder.utils import find_files
 from wavenet_vocoder.utils import read_hdf5
@@ -57,7 +58,7 @@ def decode_generator(feat_list,
                      upsampling_factor=80,
                      use_upsampling_layer=True,
                      use_speaker_code=False,
-                     pulse=True):
+                     use_pulse=True):
     """GENERATE DECODING BATCH.
 
     Args:
@@ -120,6 +121,7 @@ def decode_generator(feat_list,
     else:
         # sort with the feature length
         shape_list = [shape_hdf5(f, "/" + feature_type)[0] for f in feat_list]
+
         idx = np.argsort(shape_list)
         feat_list = [feat_list[i] for i in idx]
 
@@ -131,12 +133,15 @@ def decode_generator(feat_list,
         for batch_list in batch_lists:
             batch_x = []
             batch_h = []
+            batch_p = []
             n_samples_list = []
             feat_ids = []
             for featfile in batch_list:
                 # make seed waveform and load aux feature
                 x = np.zeros((1))
                 h = read_hdf5(featfile, "/" + feature_type)
+                p = read_hdf5(featfile, "/" + 'world_pulse')
+
                 if not use_upsampling_layer:
                     h = extend_time(h, upsampling_factor)
                 if use_speaker_code:
@@ -153,6 +158,7 @@ def decode_generator(feat_list,
                 # append to list
                 batch_x += [x]
                 batch_h += [h]
+                batch_p += [p]
                 if not use_upsampling_layer:
                     n_samples_list += [h.shape[0] - 1]
                 else:
@@ -161,22 +167,31 @@ def decode_generator(feat_list,
 
             # convert list to ndarray
             batch_x = np.stack(batch_x, axis=0)
+            batch_p = np.stack(batch_p, axis=0)
             batch_h = pad_list(batch_h)
 
             # convert to torch variable
             batch_x = torch.from_numpy(batch_x).long()
+            batch_p = torch.from_numpy(batch_p).float()
             batch_h = torch.from_numpy(batch_h).float().transpose(1, 2)
 
             # send to cuda
             if torch.cuda.is_available():
                 batch_x = batch_x.cuda()
                 batch_h = batch_h.cuda()
+                batch_p = batch_p.cuda()
 
-            yield feat_ids, (batch_x, batch_h, n_samples_list)
+            yield feat_ids, (batch_x, batch_h, batch_p, n_samples_list)
 
+"""
+--checkpoint /home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3/checkpoint-200000.pkl
+--feats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/hdf5/ev_slt 
+--outdir eva_out 
+--stats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/data/tr_slt/stats.h5 
+--config /home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3/model.conf
+"""
 
-def main():
-    """RUN DECODING."""
+def parse_args():
     parser = argparse.ArgumentParser()
     # decode setting
     parser.add_argument("--feats", required=True,
@@ -195,6 +210,8 @@ def main():
                         type=int, help="number of batch size in decoding")
     parser.add_argument("--n_gpus", default=1,
                         type=int, help="number of gpus")
+    parser.add_argument("--use_pulse", default=True, action='store_true', help="using pulse signal")
+
     # other setting
     parser.add_argument("--intervals", default=1000,
                         type=int, help="log interval")
@@ -203,6 +220,12 @@ def main():
     parser.add_argument("--verbose", default=1,
                         type=int, help="log level")
     args = parser.parse_args()
+
+    return args
+
+def main(args):
+    """RUN DECODING."""
+
 
     # set log level
     if args.verbose > 0:
@@ -242,7 +265,7 @@ def main():
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
-    # fix slow computation of dilated conv
+    # fix slow computation of dilated convargs.feats
     # https://github.com/pytorch/pytorch/issues/15054#issuecomment-450191923
     torch.backends.cudnn.benchmark = True
 
@@ -282,7 +305,13 @@ def main():
             upsampling_factor = config.upsampling_factor
         else:
             upsampling_factor = 0
-        model = WaveNet(
+
+        if args.use_pulse:
+            _WaveNet = WaveNetPulse
+        else:
+            _WaveNet = WaveNet
+
+        model = _WaveNet(
             n_quantize=config.n_quantize,
             n_aux=config.n_aux,
             n_resch=config.n_resch,
@@ -291,10 +320,8 @@ def main():
             dilation_repeat=config.dilation_repeat,
             kernel_size=config.kernel_size,
             upsampling_factor=upsampling_factor)
-        model.load_state_dict(torch.load(
-            args.checkpoint,
-            map_location=lambda storage,
-                                loc: storage)["model"])
+
+        model.load_state_dict(torch.load(args.checkpoint, map_location=lambda storage, loc: storage)["model"])
         model.eval()
         model.cuda()
 
@@ -307,25 +334,21 @@ def main():
             feat_transform=feat_transform,
             upsampling_factor=config.upsampling_factor,
             use_upsampling_layer=config.use_upsampling_layer,
-            use_speaker_code=config.use_speaker_code)
+            use_speaker_code=config.use_speaker_code,
+            use_pulse=args.use_pulse)
 
         # decode
         if args.batch_size > 1:
-            for feat_ids, (batch_x, batch_h, n_samples_list) in generator:
+            for feat_ids, (batch_x, batch_h, batch_p, n_samples_list) in generator:
                 logging.info("decoding start")
                 samples_list = model.batch_fast_generate(
-                    batch_x, batch_h, n_samples_list, args.intervals)
+                    batch_x, batch_h, n_samples_list, batch_p, intervals=args.intervals)
                 for feat_id, samples in zip(feat_ids, samples_list):
                     wav = decode_mu_law(samples, config.n_quantize)
                     sf.write(args.outdir + "/" + feat_id + ".wav", wav, args.fs, "PCM_16")
                     logging.info("wrote %s.wav in %s." % (feat_id, args.outdir))
         else:
-            for feat_id, (x, h, n_samples) in generator:
-                logging.info("decoding %s (length = %d)" % (feat_id, n_samples))
-                samples = model.fast_generate(x, h, n_samples, args.intervals)
-                wav = decode_mu_law(samples, config.n_quantize)
-                sf.write(args.outdir + "/" + feat_id + ".wav", wav, args.fs, "PCM_16")
-                logging.info("wrote %s.wav in %s." % (feat_id, args.outdir))
+            raise NotImplementedError
 
     # parallel decode
     processes = []
@@ -340,4 +363,24 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+
+    args = parse_args()
+
+
+
+    # data_folder = '/home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/wav_hpf/tr_slt'
+    #
+    # filenames = os.listdir(data_folder)
+    # # filenames = sorted(find_files(args.waveforms, "*.wav", use_dir_name=False))
+    # print(filenames)
+    #
+    # data_folder = '/home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/wav_hpf/tr_slt'
+    # args.hdf5dir = 'test'
+    # args.wavdir = data_folder
+
+    main(args)
+
+
+    # wav_list = [os.path.join(data_folder, filename) for filename in filenames]
+    # wav_list = wav_list[:2]
+    # world_feature_extract(wav_list, args)

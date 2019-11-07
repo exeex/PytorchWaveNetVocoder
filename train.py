@@ -24,6 +24,7 @@ from torchvision import transforms
 from wavenet_vocoder.nets.wavenet_utils import encode_mu_law
 from wavenet_vocoder.nets.wavenet_utils import initialize
 from wavenet_vocoder.nets import WaveNet
+from wavenet_vocoder.nets.wavenet_pulse import WaveNetPulse
 from wavenet_vocoder.utils import find_files
 from wavenet_vocoder.utils import read_txt
 from dataset import train_generator
@@ -43,7 +44,7 @@ class WaveNetTrainer:
     def __init__(self):
         args = self.parse_arg()
         self.args = args
-
+        self.save_arg()
         # set log level
         if args.verbose == 1:
             logging.basicConfig(level=logging.INFO,
@@ -115,7 +116,7 @@ class WaveNetTrainer:
         parser.add_argument("--upsampling_factor", default=80, type=int, help="upsampling factor of aux features")
         parser.add_argument("--use_upsampling_layer", default=True, type=strtobool, help="flag to use upsampling layer")
         parser.add_argument("--use_speaker_code", default=False, type=strtobool, help="flag to use speaker code")
-        parser.add_argument("--use_pulse", default=True, type=strtobool, help="using pulse signal")
+        parser.add_argument("--use_pulse", default=True, action='store_true', help="using pulse signal")
 
         # network training setting
         parser.add_argument("--lr", default=1e-4, type=float, help="learning rate")
@@ -148,7 +149,7 @@ class WaveNetTrainer:
             upsampling_factor = self.args.upsampling_factor
         else:
             upsampling_factor = 0
-        model = WaveNet(
+        model = WaveNetPulse(
             n_quantize=self.args.n_quantize,
             n_aux=self.args.n_aux,
             n_resch=self.args.n_resch,
