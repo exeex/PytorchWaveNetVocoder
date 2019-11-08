@@ -19,7 +19,7 @@ from .wavenet import WaveNet
 
 class WaveNetPulse(WaveNet):
 
-    def __init__(self, n_quantize=256, n_aux=28, n_p=4, n_resch=512, n_skipch=256,
+    def __init__(self, n_quantize=256, n_aux=28, n_p=1, n_resch=512, n_skipch=256,
                  dilation_depth=10, dilation_repeat=3, kernel_size=2, upsampling_factor=0):
 
         super(WaveNetPulse, self).__init__(n_quantize, n_aux, n_resch, n_skipch,
@@ -51,6 +51,7 @@ class WaveNetPulse(WaveNet):
         if self.upsampling_factor > 0:
             h = self.upsampling(h)
 
+        p = p.unsqueeze(1)
         # residual block
         skip_connections = []
         for l in range(len(self.dilations)):
