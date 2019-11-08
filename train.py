@@ -29,6 +29,7 @@ from wavenet_vocoder.utils import find_files
 from wavenet_vocoder.utils import read_txt
 from dataset import train_generator
 from wavenet_vocoder.utils import read_hdf5
+from tensorboardX import SummaryWriter
 
 waveforms = "data/tr_slt/wav_hpf.scp"
 feats = "data/tr_slt/feats.scp"
@@ -37,6 +38,8 @@ expdir = "/home/cswu/research/PytorchWaveNetVocoder/tttt"
 resume = "/home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3/checkpoint-200000.pkl"
 # resume = None
 os.chdir('egs/arctic/sd')
+
+writer = SummaryWriter()
 
 
 class WaveNetTrainer:
@@ -260,6 +263,8 @@ class WaveNetTrainer:
             if (i + 1) % self.args.intervals == 0:
                 logging.info(f"(iter:%d) average loss = %.6f (%.3f sec / batch)" % (
                     i + 1, loss / self.args.intervals, total / self.args.intervals))
+                writer.add_scalar('data/loss', loss / self.args.intervals, i + 1)
+
                 logging.info("estimated required time = "
                              "{0.days:02}:{0.hours:02}:{0.minutes:02}:{0.seconds:02}"
                     .format(relativedelta(
