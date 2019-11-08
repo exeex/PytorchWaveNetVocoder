@@ -39,7 +39,7 @@ expdir = "/home/cswu/research/PytorchWaveNetVocoder/pulse_repeat1_re"
 resume = None
 os.chdir('egs/arctic/sd')
 
-writer = SummaryWriter()
+writer = SummaryWriter(os.path.join(expdir, 'runs'))
 
 
 class WaveNetTrainer:
