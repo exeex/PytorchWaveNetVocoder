@@ -32,7 +32,7 @@ class WaveNet(nn.Module):
     """
 
     def __init__(self, n_quantize=256, n_aux=28, n_resch=512, n_skipch=256,
-                 dilation_depth=10, dilation_repeat=3, kernel_size=2, upsampling_factor=0, **kwargs):
+                 dilation_depth=10, dilation_repeat=3, kernel_size=2, upsampling_factor=0):
         super(WaveNet, self).__init__()
         self.n_aux = n_aux
         self.n_quantize = n_quantize

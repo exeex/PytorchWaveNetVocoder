@@ -199,15 +199,18 @@ class WaveNetPulse(WaveNet):
         start = time.time()
         for i in range(max_n_samples):
             output = samples[:, -self.kernel_size * 2 + 1:]
+            # _p = p[:, -self.kernel_size * 2 + 1:]
             output = self._preprocess(output)  # B x C x T
             h_ = h[:, :, samples.size(-1) - 1].contiguous().unsqueeze(-1)  # B x C x 1
             output_buffer_next = []
             skip_connections = []
             for l, d in enumerate(self.dilations):
-                output, skip = self._generate_residual_forward(
-                    output, h_, self.dil_sigmoid[l], self.dil_tanh[l],
-                    self.aux_1x1_sigmoid[l], self.aux_1x1_tanh[l],
-                    self.skip_1x1[l], self.res_1x1[l])
+                a = output.shape
+                output, skip = self._generate_residual_forward(output, h_,
+                                                               self.dil_sigmoid[l], self.dil_tanh[l],
+                                                               self.aux_1x1_sigmoid[l], self.aux_1x1_tanh[l],
+                                                               self.skip_1x1[l], self.res_1x1[l],
+                                                               p, self.p_1x1_sigmoid[l], self.p_1x1_tanh[l])
                 output = torch.cat([output_buffer[l], output], dim=2)
                 output_buffer_next.append(output[:, :, -buffer_size[l]:])
                 skip_connections.append(skip)
