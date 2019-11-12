@@ -25,6 +25,7 @@ class WaveNetPulse(WaveNet):
         super(WaveNetPulse, self).__init__(n_quantize, n_aux, n_resch, n_skipch,
                                            dilation_depth, dilation_repeat, kernel_size, upsampling_factor)
 
+        logging.info("Now you are using Wavenet PULSE version!!!")
         self.n_p = n_p
 
         # for residual blocks

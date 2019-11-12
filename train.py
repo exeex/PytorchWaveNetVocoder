@@ -34,7 +34,7 @@ from tensorboardX import SummaryWriter
 waveforms = "data/tr_slt/wav_hpf.scp"
 feats = "data/tr_slt/feats.scp"
 stats = "data/tr_slt/stats.h5"
-expdir = "/home/cswu/research/PytorchWaveNetVocoder/pulse_repeat1_re"
+expdir = "/home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3_re"
 # resume = "/home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3/checkpoint-200000.pkl"
 resume = None
 os.chdir('egs/arctic/sd')
@@ -110,16 +110,16 @@ class WaveNetTrainer:
                             help="feature type")
         # network structure setting
         parser.add_argument("--n_quantize", default=256, type=int, help="number of quantization")
-        parser.add_argument("--n_aux", default=27, type=int, help="number of dimension of aux feats")
+        parser.add_argument("--n_aux", default=28, type=int, help="number of dimension of aux feats")
         parser.add_argument("--n_resch", default=512, type=int, help="number of channels of residual output")
         parser.add_argument("--n_skipch", default=256, type=int, help="number of channels of skip output")
         parser.add_argument("--dilation_depth", default=10, type=int, help="depth of dilation")
-        parser.add_argument("--dilation_repeat", default=1, type=int, help="number of repeating of dilation")
+        parser.add_argument("--dilation_repeat", default=3, type=int, help="number of repeating of dilation")
         parser.add_argument("--kernel_size", default=2, type=int, help="kernel size of dilated causal convolution")
         parser.add_argument("--upsampling_factor", default=80, type=int, help="upsampling factor of aux features")
         parser.add_argument("--use_upsampling_layer", default=True, type=strtobool, help="flag to use upsampling layer")
         parser.add_argument("--use_speaker_code", default=False, type=strtobool, help="flag to use speaker code")
-        parser.add_argument("--use_pulse", default=True, action='store_true', help="using pulse signal")
+        parser.add_argument("--use_pulse", default=False, action='store_true', help="using pulse signal")
 
         # network training setting
         parser.add_argument("--lr", default=1e-4, type=float, help="learning rate")
@@ -153,7 +153,15 @@ class WaveNetTrainer:
             upsampling_factor = self.args.upsampling_factor
         else:
             upsampling_factor = 0
-        model = WaveNetPulse(
+
+        if self.args.use_pulse:
+            _Wavenet = WaveNetPulse
+            assert self.args.n_aux == 27
+        else:
+            _Wavenet = WaveNet
+            assert self.args.n_aux == 28
+
+        model = _Wavenet(
             n_quantize=self.args.n_quantize,
             n_aux=self.args.n_aux,
             n_resch=self.args.n_resch,
