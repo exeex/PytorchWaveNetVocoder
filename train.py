@@ -31,7 +31,7 @@ from dataset import train_generator
 from wavenet_vocoder.utils import read_hdf5
 from tensorboardX import SummaryWriter
 
-waveforms = "data/tr_slt/wav_hpf.scp"
+waveforms = "data/tr_slt/wav_nwf.scp"
 feats = "data/tr_slt/feats.scp"
 stats = "data/tr_slt/stats.h5"
 expdir = "/home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3_re"
