@@ -50,6 +50,21 @@ def pad_list(batch_list, pad_value=0.0):
     return batch_pad
 
 
+def pad_along_axis(array: np.ndarray, target_length, axis=0):
+    pad_size = target_length - array.shape[axis]
+    axis_nb = len(array.shape)
+
+    if pad_size < 0:
+        return array.take(indices=range(target_length), axis=axis)
+
+    npad = [(0, 0) for _ in range(axis_nb)]
+    npad[axis] = (0, pad_size)
+
+    b = np.pad(array, pad_width=npad, mode='constant', constant_values=0)
+
+    return b
+
+
 def decode_generator(feat_list,
                      batch_size=32,
                      feature_type="world",
@@ -94,6 +109,9 @@ def decode_generator(feat_list,
                 x = wav_transform(x)
             if feat_transform is not None:
                 h = feat_transform(h)
+
+            if use_pulse:
+                h = np.concatenate([h[:, 0:1], h[:, 2:]], axis=1)  # remove cont_f0_lpf
 
             # convert to torch variable
             x = torch.from_numpy(x).long()
@@ -155,6 +173,8 @@ def decode_generator(feat_list,
                 if feat_transform is not None:
                     h = feat_transform(h)
 
+                if use_pulse:
+                    h = np.concatenate([h[:, 0:1], h[:, 2:]], axis=1)  # remove cont_f0_lpf
                 # append to list
                 batch_x += [x]
                 batch_h += [h]
@@ -167,13 +187,18 @@ def decode_generator(feat_list,
 
             # convert list to ndarray
             batch_x = np.stack(batch_x, axis=0)
-            batch_p = np.stack(batch_p, axis=0)
+
+            len_p_max = max([len(p) for p in batch_p])
+            batch_p = [pad_along_axis(p, len_p_max, axis=0) for p, n_sample in zip(batch_p, n_samples_list)]
+            batch_p = np.stack(batch_p)
             batch_h = pad_list(batch_h)
 
             # convert to torch variable
-            batch_x = torch.from_numpy(batch_x).long()
-            batch_p = torch.from_numpy(batch_p).float()
-            batch_h = torch.from_numpy(batch_h).float().transpose(1, 2)
+            batch_x = torch.from_numpy(batch_x).long()  # B, 1
+            batch_p = torch.from_numpy(batch_p).float().unsqueeze(1)  # B, C=1, T
+            batch_h = torch.from_numpy(batch_h).float().transpose(1, 2)  # B, C, T(Frame)
+
+            print(batch_x.shape, batch_p.shape, batch_h.shape)
 
             # send to cuda
             if torch.cuda.is_available():
@@ -183,13 +208,15 @@ def decode_generator(feat_list,
 
             yield feat_ids, (batch_x, batch_h, batch_p, n_samples_list)
 
+
 """
---checkpoint /home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3/checkpoint-200000.pkl
+--checkpoint /home/cswu/research/PytorchWaveNetVocoder/pulse_repeat1_re/checkpoint-200000.pkl
 --feats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/hdf5/ev_slt 
 --outdir eva_out 
 --stats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/data/tr_slt/stats.h5 
---config /home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3/model.conf
+--config /home/cswu/research/PytorchWaveNetVocoder/pulse_repeat1_re/model.conf
 """
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -223,9 +250,9 @@ def parse_args():
 
     return args
 
+
 def main(args):
     """RUN DECODING."""
-
 
     # set log level
     if args.verbose > 0:
@@ -324,7 +351,7 @@ def main(args):
         model.load_state_dict(torch.load(args.checkpoint, map_location=lambda storage, loc: storage)["model"])
         model.eval()
         model.cuda()
-
+        print(args.use_pulse)
         # define generator
         generator = decode_generator(
             feat_list,
@@ -363,10 +390,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-
     args = parse_args()
-
-
 
     # data_folder = '/home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/wav_hpf/tr_slt'
     #
@@ -379,7 +403,6 @@ if __name__ == "__main__":
     # args.wavdir = data_folder
 
     main(args)
-
 
     # wav_list = [os.path.join(data_folder, filename) for filename in filenames]
     # wav_list = wav_list[:2]
