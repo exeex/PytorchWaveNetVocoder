@@ -208,13 +208,25 @@ def decode_generator(feat_list,
 
             yield feat_ids, (batch_x, batch_h, batch_p, n_samples_list)
 
+# pulse
 
 """
 --checkpoint /home/cswu/research/PytorchWaveNetVocoder/pulse_repeat1_re/checkpoint-200000.pkl
 --feats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/hdf5/ev_slt 
---outdir eva_out 
+--outdir eva_out_pulse
 --stats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/data/tr_slt/stats.h5 
 --config /home/cswu/research/PytorchWaveNetVocoder/pulse_repeat1_re/model.conf
+--use_pulse
+"""
+
+# no pulse
+
+"""
+--checkpoint /home/cswu/research/PytorchWaveNetVocoder/no_pulse_repeat1/checkpoint-200000.pkl
+--config /home/cswu/research/PytorchWaveNetVocoder/no_pulse_repeat1/model.conf
+--outdir eva_out_no_pulse
+--feats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/hdf5/ev_slt 
+--stats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/data/tr_slt/stats.h5 
 """
 
 
@@ -237,7 +249,7 @@ def parse_args():
                         type=int, help="number of batch size in decoding")
     parser.add_argument("--n_gpus", default=1,
                         type=int, help="number of gpus")
-    parser.add_argument("--use_pulse", default=True, action='store_true', help="using pulse signal")
+    parser.add_argument("--use_pulse", default=False, action='store_true', help="using pulse signal")
 
     # other setting
     parser.add_argument("--intervals", default=1000,
@@ -337,6 +349,7 @@ def main(args):
             _WaveNet = WaveNetPulse
         else:
             _WaveNet = WaveNet
+            config.n_aux = 28
 
         model = _WaveNet(
             n_quantize=config.n_quantize,
