@@ -219,12 +219,22 @@ def decode_generator(feat_list,
 --use_pulse
 """
 
-# no pulse
+# no pulse repeat1
 
 """
 --checkpoint /home/cswu/research/PytorchWaveNetVocoder/no_pulse_repeat1/checkpoint-200000.pkl
 --config /home/cswu/research/PytorchWaveNetVocoder/no_pulse_repeat1/model.conf
 --outdir eva_out_no_pulse
+--feats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/hdf5/ev_slt 
+--stats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/data/tr_slt/stats.h5 
+"""
+
+# no pulse repeat3
+
+"""
+--checkpoint /home/cswu/research/PytorchWaveNetVocoder/no_pulse_repeat3/checkpoint-200000.pkl
+--config /home/cswu/research/PytorchWaveNetVocoder/no_pulse_repeat3/model.conf
+--outdir eva_out_no_pulse_repeat3
 --feats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/hdf5/ev_slt 
 --stats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/data/tr_slt/stats.h5 
 """

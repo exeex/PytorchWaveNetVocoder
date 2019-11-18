@@ -31,10 +31,10 @@ from dataset import train_generator
 from wavenet_vocoder.utils import read_hdf5
 from tensorboardX import SummaryWriter
 
-waveforms = "data/tr_slt/wav_nwf.scp"
+waveforms = "data/tr_slt/wav_hpf.scp"
 feats = "data/tr_slt/feats.scp"
 stats = "data/tr_slt/stats.h5"
-expdir = "/home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3_re"
+expdir = "/home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3"
 # resume = "/home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3/checkpoint-200000.pkl"
 resume = None
 os.chdir('egs/arctic/sd')
@@ -110,7 +110,7 @@ class WaveNetTrainer:
                             help="feature type")
         # network structure setting
         parser.add_argument("--n_quantize", default=256, type=int, help="number of quantization")
-        parser.add_argument("--n_aux", default=28, type=int, help="number of dimension of aux feats")
+        parser.add_argument("--n_aux", default=27, type=int, help="number of dimension of aux feats")
         parser.add_argument("--n_resch", default=512, type=int, help="number of channels of residual output")
         parser.add_argument("--n_skipch", default=256, type=int, help="number of channels of skip output")
         parser.add_argument("--dilation_depth", default=10, type=int, help="depth of dilation")
@@ -119,7 +119,7 @@ class WaveNetTrainer:
         parser.add_argument("--upsampling_factor", default=80, type=int, help="upsampling factor of aux features")
         parser.add_argument("--use_upsampling_layer", default=True, type=strtobool, help="flag to use upsampling layer")
         parser.add_argument("--use_speaker_code", default=False, type=strtobool, help="flag to use speaker code")
-        parser.add_argument("--use_pulse", default=False, action='store_true', help="using pulse signal")
+        parser.add_argument("--use_pulse", default=True, action='store_true', help="using pulse signal")
 
         # network training setting
         parser.add_argument("--lr", default=1e-4, type=float, help="learning rate")
