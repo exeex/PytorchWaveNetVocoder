@@ -27,19 +27,26 @@ from wavenet_vocoder.nets import WaveNet
 from wavenet_vocoder.nets.wavenet_pulse import WaveNetPulse
 from wavenet_vocoder.utils import find_files
 from wavenet_vocoder.utils import read_txt
-from dataset import train_generator
+from dataset import train_generator as data_generator
 from wavenet_vocoder.utils import read_hdf5
 from tensorboardX import SummaryWriter
+from time import gmtime, strftime
 
 waveforms = "data/tr_slt/wav_hpf.scp"
 feats = "data/tr_slt/feats.scp"
+
+wav_list_test = read_txt("egs/arctic/sd/data/ev_slt/wav_hpf.scp")
+feat_list_test = read_txt("egs/arctic/sd/data/ev_slt/feats.scp")
+
 stats = "data/tr_slt/stats.h5"
-expdir = "/home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3"
+expdir = "exp/pulse_repeat1_1129"
 # resume = "/home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3/checkpoint-200000.pkl"
 resume = None
+
+strftime("%Y-%m-%d@%H_%M_%S", gmtime())
 os.chdir('egs/arctic/sd')
 
-writer = SummaryWriter(os.path.join(expdir, 'runs'))
+writer = SummaryWriter(os.path.join(expdir, strftime('runs/%Y-%m-%d@%H_%M_%S', gmtime())))
 
 
 class WaveNetTrainer:
@@ -77,7 +84,7 @@ class WaveNetTrainer:
         torch.manual_seed(args.seed)
 
         self.model = self.build_model()
-        self.dataloader = self.get_dataloader()
+        self.train_loader, self.test_loader = self.get_dataloader()
 
         # define optimizer and loss
         self.optimizer = torch.optim.Adam(
@@ -197,19 +204,19 @@ class WaveNetTrainer:
         # define generator
         if os.path.isdir(args.waveforms):
             filenames = sorted(find_files(args.waveforms, "*.wav", use_dir_name=False))
-            wav_list = [args.waveforms + "/" + filename for filename in filenames]
-            feat_list = [args.feats + "/" + filename.replace(".wav", ".h5") for filename in filenames]
+            wav_list_train = [args.waveforms + "/" + filename for filename in filenames]
+            feat_list_train = [args.feats + "/" + filename.replace(".wav", ".h5") for filename in filenames]
 
         elif os.path.isfile(args.waveforms):
-            wav_list = read_txt(args.waveforms)
-            feat_list = read_txt(args.feats)
+            wav_list_train = read_txt(args.waveforms)
+            feat_list_train = read_txt(args.feats)
         else:
             logging.error("--waveforms should be directory or list.")
             sys.exit(1)
-        assert len(wav_list) == len(feat_list)
-        logging.info("number of training data = %d." % len(wav_list))
-        generator = train_generator(
-            wav_list, feat_list,
+        assert len(wav_list_train) == len(feat_list_train)
+        logging.info("number of training data = %d." % len(wav_list_train))
+        generator = data_generator(
+            wav_list_train, feat_list_train,
             receptive_field=self.model.receptive_field,
             batch_length=args.batch_length,
             batch_size=args.batch_size,
@@ -222,11 +229,25 @@ class WaveNetTrainer:
             use_speaker_code=args.use_speaker_code,
             use_pulse=args.use_pulse)
 
+        test_generator = data_generator(
+            wav_list_test[:args.batch_size], feat_list_test[:args.batch_size],
+            receptive_field=self.model.receptive_field,
+            batch_length=args.batch_length,
+            batch_size=args.batch_size,
+            feature_type=args.feature_type,
+            wav_transform=wav_transform,
+            feat_transform=feat_transform,
+            shuffle=False,
+            upsampling_factor=args.upsampling_factor,
+            use_upsampling_layer=args.use_upsampling_layer,
+            use_speaker_code=args.use_speaker_code,
+            use_pulse=args.use_pulse)
+
         # charge minibatch in queue
         while not generator.queue.full():
             time.sleep(0.1)
 
-        return generator
+        return generator, test_generator
 
     def load_parameter(self):
         # resume model and optimizer
@@ -255,9 +276,10 @@ class WaveNetTrainer:
         # train
         loss = 0
         total = 0
-        for i in six.moves.range(start_iteration, self.args.iters):
+        for i in range(start_iteration, self.args.iters):
             start = time.time()
-            (x, h, p), y_target = self.dataloader.next()
+            (x, h, p), y_target = self.train_loader.next()
+
             y_pred = self.model(x, h, p)
             batch_loss = self.get_loss(y_pred, y_target)
             self.optimizer.zero_grad()
@@ -270,9 +292,19 @@ class WaveNetTrainer:
 
             # report progress
             if (i + 1) % self.args.intervals == 0:
-                logging.info(f"(iter:%d) average loss = %.6f (%.3f sec / batch)" % (
+                logging.info(f"(iter:%d) average train loss = %.6f (%.3f sec / batch)" % (
+                    i + 1, loss / self.args.intervals, total / self.args.intervals))
+                writer.add_scalar('data/avg_train_loss', loss / self.args.intervals, i + 1)
+
+                (x_, h_, p_), y_target = self.test_loader.next()
+                y_pred = self.model(x_, h_, p_)
+                test_loss = self.get_loss(y_pred, y_target)
+                test_loss = test_loss.item()
+
+                logging.info(f"(iter:%d) test loss = %.6f (%.3f sec / batch)" % (
                     i + 1, loss / self.args.intervals, total / self.args.intervals))
                 writer.add_scalar('data/loss', loss / self.args.intervals, i + 1)
+                writer.add_scalar('data/test_loss', test_loss, i + 1)
 
                 logging.info("estimated required time = "
                              "{0.days:02}:{0.hours:02}:{0.minutes:02}:{0.seconds:02}"
