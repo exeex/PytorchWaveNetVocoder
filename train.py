@@ -121,7 +121,7 @@ class WaveNetTrainer:
         parser.add_argument("--n_resch", default=512, type=int, help="number of channels of residual output")
         parser.add_argument("--n_skipch", default=256, type=int, help="number of channels of skip output")
         parser.add_argument("--dilation_depth", default=10, type=int, help="depth of dilation")
-        parser.add_argument("--dilation_repeat", default=3, type=int, help="number of repeating of dilation")
+        parser.add_argument("--dilation_repeat", default=1, type=int, help="number of repeating of dilation")
         parser.add_argument("--kernel_size", default=2, type=int, help="kernel size of dilated causal convolution")
         parser.add_argument("--upsampling_factor", default=80, type=int, help="upsampling factor of aux features")
         parser.add_argument("--use_upsampling_layer", default=True, type=strtobool, help="flag to use upsampling layer")
@@ -301,8 +301,7 @@ class WaveNetTrainer:
                 test_loss = self.get_loss(y_pred, y_target)
                 test_loss = test_loss.item()
 
-                logging.info(f"(iter:%d) test loss = %.6f (%.3f sec / batch)" % (
-                    i + 1, loss / self.args.intervals, total / self.args.intervals))
+                logging.info(f"(iter:%d) test loss = %.6f" % (i + 1, test_loss))
                 writer.add_scalar('data/loss', loss / self.args.intervals, i + 1)
                 writer.add_scalar('data/test_loss', test_loss, i + 1)
 
