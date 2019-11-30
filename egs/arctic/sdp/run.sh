@@ -25,7 +25,7 @@ stage=0123456
 #######################################
 #          FEATURE SETTING            #
 #######################################
-feature_type=world_pulse     # world or melspc (in this recipe fixed to "world")
+feature_type=world     # world or melspc (in this recipe fixed to "world")
 spk=slt                # target spekaer in arctic
 minf0=""               # minimum f0 (if not set, conf/*.f0 will be used)
 maxf0=""               # maximum f0 (if not set, conf/*.f0 will be used)
@@ -148,7 +148,6 @@ if echo ${stage} | grep -q 1; then
                 --highpass_cutoff ${highpass_cutoff} \
                 --fftl ${fftl} \
                 --n_jobs ${n_jobs}
-
         # check the number of feature files
         n_wavs=$(wc -l data/${set}/wav.scp)
         n_feats=$(find hdf5/${set} -name "*.h5" | wc -l)

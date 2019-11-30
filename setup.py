@@ -10,10 +10,10 @@ from setuptools import find_packages
 from setuptools import setup
 
 
-if LooseVersion(sys.version) < LooseVersion("3.6"):
-    raise RuntimeError(
-        "Python>=3.6 is required, "
-        "but your Python is {}".format(sys.version))
+# if LooseVersion(sys.version) < LooseVersion("3.6"):
+#     raise RuntimeError(
+#         "Python>=3.6 is required, "
+#         "but your Python is {}".format(sys.version))
 if LooseVersion(pip.__version__) < LooseVersion("19"):
     raise RuntimeError(
         "pip>=19.0.0 is required, but your pip is {}. "
@@ -21,17 +21,17 @@ if LooseVersion(pip.__version__) < LooseVersion("19"):
 
 requirements = {
     "install": [
-        "h5py>=2.8.0",
-        "scikit-learn>=0.20.2",
-        "librosa>=0.6.2",
-        "soundfile>=0.10.2",
+        # "h5py>=2.8.0",
+        # "scikit-learn>=0.20.2",
+        # "librosa>=0.6.2",
+        # "soundfile>=0.10.2",
         "torch>=1.0.1",
-        "torchvision>=0.2.2",
-        "sprocket-vc>=0.18.2",
-        "matplotlib>=3.0.3",
+        # "torchvision>=0.2.2",
+        # "sprocket-vc>=0.18.2",
+        # "matplotlib>=3.0.3",
     ],
     "setup": [
-        "numpy",
+        # "numpy",
         "pytest-runner"
     ],
     "test": [
@@ -62,7 +62,6 @@ setup(name="wavenet_vocoder",
       extras_require=extras_require,
       classifiers=[
           "Programming Language :: Python",
-          "Programming Language :: Python :: 3.6",
           "Intended Audience :: Science/Research",
           "Operating System :: POSIX :: Linux",
           "License :: OSI Approved :: Apache Software License",
