@@ -1,0 +1,1 @@
+bash decode_shifts.sh 2> >(tee log.txt)

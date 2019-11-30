@@ -27,8 +27,10 @@ from wavenet_vocoder.utils import read_hdf5
 from wavenet_vocoder.utils import read_txt
 from wavenet_vocoder.utils import shape_hdf5
 
+from functools import partial
 
-def shift_semi_tone_f0_no_pulse(h, shift=1):
+
+def shift_semi_tone_f0_no_pulse(h, shift=2):
     freq_scale = 2 ** (shift / 12)
     h[:, 1] = h[:, 1] * freq_scale
     return h
@@ -212,6 +214,8 @@ def main():
                         type=int, help="number of batch size in decoding")
     parser.add_argument("--n_gpus", default=1,
                         type=int, help="number of gpus")
+    parser.add_argument("--f0_shift", default=0,
+                        type=int, help="f0 shift semi tone")
     # other setting
     parser.add_argument("--intervals", default=1000,
                         type=int, help="log interval")
@@ -286,7 +290,7 @@ def main():
     wav_transform = transforms.Compose([
         lambda x: encode_mu_law(x, config.n_quantize)])
     feat_transform = transforms.Compose([
-        lambda x: scaler.transform(x), shift_semi_tone_f0_no_pulse])
+        lambda x: scaler.transform(x), partial(shift_semi_tone_f0_no_pulse, shift=args.f0_shift)])
 
     # define gpu decode function
     def gpu_decode(feat_list, gpu):
