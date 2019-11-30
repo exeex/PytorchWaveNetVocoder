@@ -28,6 +28,12 @@ from wavenet_vocoder.utils import read_txt
 from wavenet_vocoder.utils import shape_hdf5
 
 
+def shift_semi_tone_f0_no_pulse(h, shift=1):
+    freq_scale = 2 ** (shift / 12)
+    h[:, 1] = h[:, 1] * freq_scale
+    return h
+
+
 def pad_list(batch_list, pad_value=0.0):
     """PAD VALUE.
 
@@ -92,6 +98,7 @@ def decode_generator(feat_list,
                 x = wav_transform(x)
             if feat_transform is not None:
                 h = feat_transform(h)
+            # print(h.shape)
 
             # convert to torch variable
             x = torch.from_numpy(x).long()
@@ -147,7 +154,9 @@ def decode_generator(feat_list,
                 if wav_transform is not None:
                     x = wav_transform(x)
                 if feat_transform is not None:
+                    # print(h.shape)
                     h = feat_transform(h)
+                    # print(h.shape)
 
                 # append to list
                 batch_x += [x]
@@ -172,6 +181,15 @@ def decode_generator(feat_list,
                 batch_h = batch_h.cuda()
 
             yield feat_ids, (batch_x, batch_h, n_samples_list)
+
+
+"""
+--checkpoint /home/slee/PytorchWaveNetVocoder/egs/arctic/sd/exp/tr_arctic_16k_sd_world_slt_nq256_na28_nrc512_nsc256_ks2_dp10_dr3_lr1e-4_wd0.0_bl20000_bs1_ns_up/checkpoint-200000.pkl
+--config /home/slee/PytorchWaveNetVocoder/egs/arctic/sd/exp/tr_arctic_16k_sd_world_slt_nq256_na28_nrc512_nsc256_ks2_dp10_dr3_lr1e-4_wd0.0_bl20000_bs1_ns_up/model.conf
+--outdir /home/slee/PytorchWaveNetVocoder/output/semi_tone_shift+1
+--feats /home/slee/PytorchWaveNetVocoder/egs/arctic/sd/hdf5/ev_slt
+--stats /home/slee/PytorchWaveNetVocoder/egs/arctic/sd/exp/tr_arctic_16k_sd_world_slt_nq256_na28_nrc512_nsc256_ks2_dp10_dr3_lr1e-4_wd0.0_bl20000_bs1_ns_up/stats.h5
+"""
 
 
 def main():
@@ -268,7 +286,7 @@ def main():
     wav_transform = transforms.Compose([
         lambda x: encode_mu_law(x, config.n_quantize)])
     feat_transform = transforms.Compose([
-        lambda x: scaler.transform(x)])
+        lambda x: scaler.transform(x), shift_semi_tone_f0_no_pulse])
 
     # define gpu decode function
     def gpu_decode(feat_list, gpu):
@@ -293,7 +311,7 @@ def main():
         model.load_state_dict(torch.load(
             args.checkpoint,
             map_location=lambda storage,
-            loc: storage)["model"])
+                                loc: storage)["model"])
         model.eval()
         model.cuda()
 
