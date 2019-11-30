@@ -32,19 +32,17 @@ from wavenet_vocoder.utils import read_hdf5
 from tensorboardX import SummaryWriter
 from time import gmtime, strftime
 
-waveforms = "data/tr_slt/wav_hpf.scp"
-feats = "data/tr_slt/feats.scp"
-
-wav_list_test = read_txt("egs/arctic/sd/data/ev_slt/wav_hpf.scp")
-feat_list_test = read_txt("egs/arctic/sd/data/ev_slt/feats.scp")
-
-stats = "data/tr_slt/stats.h5"
-expdir = "exp/pulse_repeat1_1129"
 # resume = "/home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3/checkpoint-200000.pkl"
 resume = None
 
-strftime("%Y-%m-%d@%H_%M_%S", gmtime())
-os.chdir('egs/arctic/sd')
+os.chdir('egs/arctic/sdp')
+
+wav_list_test = read_txt("data/ev_slt/wav_hpf.scp")
+feat_list_test = read_txt("data/ev_slt/feats.scp")
+waveforms = "data/tr_slt/wav_hpf.scp"
+feats = "data/tr_slt/feats.scp"
+stats = "data/tr_slt/stats.h5"
+expdir = "exp/pulse_repeat1_1130"
 
 writer = SummaryWriter(os.path.join(expdir, strftime('runs/%Y-%m-%d@%H_%M_%S', gmtime())))
 

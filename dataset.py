@@ -102,6 +102,9 @@ def train_generator(wav_list, feat_list, receptive_field,
             x = data.astype(np.float) / 32768
             h = read_hdf5(featfile, "/" + feature_type)
             p = read_hdf5(featfile, "/" + 'world_pulse')
+            # p
+            p = (p > 0)
+            p = p.astype(np.float32)
 
             if not use_upsampling_layer:
                 h = extend_time(h, upsampling_factor)
@@ -216,3 +219,43 @@ def train_generator(wav_list, feat_list, receptive_field,
             idx = np.random.permutation(n_files)
             wav_list = [wav_list[i] for i in idx]
             feat_list = [feat_list[i] for i in idx]
+
+
+if __name__ == '__main__':
+    from wavenet_vocoder.utils import read_txt
+    from torchvision import transforms
+    from wavenet_vocoder.nets.wavenet_utils import encode_mu_law
+    import os
+
+    #TODO not work
+    os.chdir('egs/arctic/sdp')
+    wav_list_test = read_txt("data/ev_slt/wav_hpf.scp")
+    feat_list_test = read_txt("data/ev_slt/feats.scp")
+    waveforms = "data/tr_slt/wav_hpf.scp"
+    feats = "data/tr_slt/feats.scp"
+    stats = "data/tr_slt/stats.h5"
+    expdir = "exp/pulse_repeat1_1130"
+
+    n_quantize = 256
+    wav_transform = transforms.Compose([
+        lambda x: encode_mu_law(x, n_quantize)])
+    # feat_transform = transforms.Compose([
+    #     lambda x: scaler.transform(x)])
+
+    generator = train_generator(
+        wav_list_test, wav_list_test,
+        receptive_field=512,
+        batch_length=19900,
+        batch_size=2,
+        feature_type='world',
+        wav_transform=wav_transform,
+        feat_transform=None,
+        shuffle=True,
+        upsampling_factor=160,
+        use_upsampling_layer=True,
+        use_speaker_code=False,
+        use_pulse=True)
+
+    a = generator.next()
+
+    print(a)
