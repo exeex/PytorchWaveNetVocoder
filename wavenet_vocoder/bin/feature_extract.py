@@ -244,7 +244,7 @@ def world_feature_extract_with_pulse(wav_list, args):
         mcep = feature_extractor.mcep(dim=args.mcep_dim, alpha=args.mcep_alpha)
 
         pulse = pw.synthesize_pulse(f0, sp, ap, fs, args.shiftms).astype(np.int16)
-
+        # TODO: check quality of cont_f0_lpf, if good, use cont_f0_lpf instead of f0.
         # concatenate
         # cont_f0_lpf = np.expand_dims(cont_f0_lpf, axis=-1)
         uv = np.expand_dims(uv, axis=-1)
