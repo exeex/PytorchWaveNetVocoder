@@ -8,6 +8,12 @@ import torch
 from scipy.io import wavfile as wf
 
 
+def p_trans_binary(p):
+    p = (p > 0)
+    p = p.astype(np.float32)
+    return p
+
+
 def validate_length(x, y, upsampling_factor=None):
     """VALIDATE LENGTH.
 
@@ -47,6 +53,7 @@ def train_generator(wav_list, feat_list, receptive_field,
                     feature_type="world",
                     wav_transform=None,
                     feat_transform=None,
+                    pulse_transform=p_trans_binary,
                     shuffle=True,
                     upsampling_factor=80,
                     use_upsampling_layer=True,
@@ -103,8 +110,8 @@ def train_generator(wav_list, feat_list, receptive_field,
             h = read_hdf5(featfile, "/" + feature_type)
             p = read_hdf5(featfile, "/" + 'world_pulse')
             # p
-            p = (p > 0)
-            p = p.astype(np.float32)
+            if pulse_transform:
+                p = pulse_transform(p)
 
             if not use_upsampling_layer:
                 h = extend_time(h, upsampling_factor)
@@ -227,7 +234,7 @@ if __name__ == '__main__':
     from wavenet_vocoder.nets.wavenet_utils import encode_mu_law
     import os
 
-    #TODO not work
+    # TODO not work
     os.chdir('egs/arctic/sdp')
     wav_list_test = read_txt("data/ev_slt/wav_hpf.scp")
     feat_list_test = read_txt("data/ev_slt/feats.scp")

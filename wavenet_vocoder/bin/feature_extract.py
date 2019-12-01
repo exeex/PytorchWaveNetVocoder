@@ -209,58 +209,6 @@ def world_feature_extract(wav_list, args):
             wavfile.write(args.wavdir + "/" + os.path.basename(wav_name), fs, np.int16(x))
 
 
-def world_feature_extract_with_pulse(wav_list, args):
-    """EXTRACT WORLD FEATURE VECTOR."""
-    # define feature extractor
-    feature_extractor = FeatureExtractor(
-        analyzer="world",
-        fs=args.fs,
-        shiftms=args.shiftms,
-        minf0=args.minf0,
-        maxf0=args.maxf0,
-        fftl=args.fftl)
-
-    for i, wav_name in enumerate(wav_list):
-        logging.info("now processing %s (%d/%d)" % (wav_name, i + 1, len(wav_list)))
-
-        # load wavfile and apply low cut filter
-        fs, x = wavfile.read(wav_name)
-        if x.dtype != np.int16:
-            logging.warning("wav file format is not 16 bit PCM.")
-        x = np.array(x, dtype=np.float64)
-        if args.highpass_cutoff != 0:
-            x = low_cut_filter(x, fs, cutoff=args.highpass_cutoff)
-
-        # check sampling frequency
-        if not fs == args.fs:
-            logging.error("sampling frequency is not matched.")
-            sys.exit(1)
-
-        # extract features
-        f0, sp, ap = feature_extractor.analyze(x)
-        uv, _ = convert_to_continuos_f0(f0)  # remove f0 would cause memory access issue
-        # cont_f0_lpf = low_pass_filter(cont_f0, int(1.0 / (args.shiftms * 0.001)), cutoff=20)
-        codeap = feature_extractor.codeap()
-        mcep = feature_extractor.mcep(dim=args.mcep_dim, alpha=args.mcep_alpha)
-
-        pulse = pw.synthesize_pulse(f0, sp, ap, fs, args.shiftms).astype(np.int16)
-        # TODO: check quality of cont_f0_lpf, if good, use cont_f0_lpf instead of f0.
-        # concatenate
-        # cont_f0_lpf = np.expand_dims(cont_f0_lpf, axis=-1)
-        uv = np.expand_dims(uv, axis=-1)
-
-        feats = np.concatenate([uv, mcep, codeap], axis=1)  # cont_f0_lpf,
-
-        # save to hdf5
-        hdf5name = args.hdf5dir + "/" + os.path.basename(wav_name).replace(".wav", ".h5")
-        write_hdf5(hdf5name, "/world_pulse", feats)
-
-        # overwrite wav file
-        # if args.highpass_cutoff != 0 and args.save_wav:
-        # print(pulse.max(), pulse.min(), x.max(), x.min())
-        pulse = pulse[:x.shape[0]]  # make length identical to x
-        stereo = np.concatenate([x[:, np.newaxis].astype(np.int16), pulse[:, np.newaxis]], axis=1)
-        wavfile.write(args.wavdir + "/" + os.path.basename(wav_name), fs, stereo)
 
 
 def melspectrogram_extract(wav_list, args):

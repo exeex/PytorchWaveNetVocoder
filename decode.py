@@ -27,6 +27,17 @@ from wavenet_vocoder.utils import find_files
 from wavenet_vocoder.utils import read_hdf5
 from wavenet_vocoder.utils import read_txt
 from wavenet_vocoder.utils import shape_hdf5
+from dataset import p_trans_binary
+from functools import partial
+import pulse_world.pyworld as pw
+
+
+def shift_semi_tone_f0_pulse(f0, shift=2):
+    freq_scale = 2 ** (shift / 12)
+    # print(f0.max())
+    f0[:] = f0[:] * freq_scale
+    # print(f0.max())
+    return f0
 
 
 def pad_list(batch_list, pad_value=0.0):
@@ -70,10 +81,12 @@ def decode_generator(feat_list,
                      feature_type="world",
                      wav_transform=None,
                      feat_transform=None,
+                     pulse_transform=p_trans_binary,
                      upsampling_factor=80,
                      use_upsampling_layer=True,
                      use_speaker_code=False,
-                     use_pulse=True):
+                     use_pulse=True,
+                     f0_transform=None, ):
     """GENERATE DECODING BATCH.
 
     Args:
@@ -94,44 +107,7 @@ def decode_generator(feat_list,
     # sample-by-sample generation
     # ---------------------------
     if batch_size == 1:
-        for featfile in feat_list:
-            x = np.zeros((1))
-            h = read_hdf5(featfile, "/" + feature_type)
-            if not use_upsampling_layer:
-                h = extend_time(h, upsampling_factor)
-            if use_speaker_code:
-                sc = read_hdf5(featfile, "/speaker_code")
-                sc = np.tile(sc, [h.shape[0], 1])
-                h = np.concatenate([h, sc], axis=1)
-
-            # perform pre-processing
-            if wav_transform is not None:
-                x = wav_transform(x)
-            if feat_transform is not None:
-                h = feat_transform(h)
-
-            if use_pulse:
-                h = np.concatenate([h[:, 0:1], h[:, 2:]], axis=1)  # remove cont_f0_lpf
-
-            # convert to torch variable
-            x = torch.from_numpy(x).long()
-            h = torch.from_numpy(h).float()
-            x = x.unsqueeze(0)  # 1 => 1 x 1
-            h = h.transpose(0, 1).unsqueeze(0)  # T x C => 1 x C x T
-
-            # send to cuda
-            if torch.cuda.is_available():
-                x = x.cuda()
-                h = h.cuda()
-
-            # get target length and file id
-            if not use_upsampling_layer:
-                n_samples = h.size(2) - 1
-            else:
-                n_samples = h.size(2) * upsampling_factor - 1
-            feat_id = os.path.basename(featfile).replace(".h5", "")
-
-            yield feat_id, (x, h, n_samples)
+        raise NotImplementedError
 
     # ----------------
     # batch generation
@@ -158,7 +134,20 @@ def decode_generator(feat_list,
                 # make seed waveform and load aux feature
                 x = np.zeros((1))
                 h = read_hdf5(featfile, "/" + feature_type)
-                p = read_hdf5(featfile, "/" + 'world_pulse')
+
+                if f0_transform is not None:
+                    f0 = read_hdf5(featfile, "/" + 'world_f0')
+                    f0 = f0_transform(f0)
+                    fs = args.fs
+                    p = pw.synthesize_pulse_new(f0, fs, frame_period=args.shiftms).astype(np.int32)
+                    __p = read_hdf5(featfile, "/" + 'world_pulse')
+                    assert len(p) == len(__p)
+                else:
+                    p = read_hdf5(featfile, "/" + 'world_pulse')
+
+                if pulse_transform is not None:
+                    p = pulse_transform(p)
+                    assert p.max() <= 1.0
 
                 if not use_upsampling_layer:
                     h = extend_time(h, upsampling_factor)
@@ -208,15 +197,17 @@ def decode_generator(feat_list,
 
             yield feat_ids, (batch_x, batch_h, batch_p, n_samples_list)
 
+
 # pulse
 
 """
---checkpoint /home/cswu/research/PytorchWaveNetVocoder/pulse_repeat1_re/checkpoint-200000.pkl
---feats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/hdf5/ev_slt 
+--checkpoint /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sdp/exp/pulse_repeat1_1130/checkpoint-130000.pkl
+--feats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sdp/hdf5/ev_slt
 --outdir eva_out_pulse
---stats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sd/data/tr_slt/stats.h5 
---config /home/cswu/research/PytorchWaveNetVocoder/pulse_repeat1_re/model.conf
+--stats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sdp/data/tr_slt/stats.h5
+--config /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sdp/exp/pulse_repeat1_1130/model.conf
 --use_pulse
+--f0_shift 1
 """
 
 # no pulse repeat1
@@ -255,11 +246,15 @@ def parse_args():
                         type=str, help="configure file")
     parser.add_argument("--fs", default=16000,
                         type=int, help="sampling rate")
+    parser.add_argument("--shiftms", default=5,
+                        type=float, help="Frame shift in msec")
     parser.add_argument("--batch_size", default=32,
                         type=int, help="number of batch size in decoding")
     parser.add_argument("--n_gpus", default=1,
                         type=int, help="number of gpus")
     parser.add_argument("--use_pulse", default=False, action='store_true', help="using pulse signal")
+    parser.add_argument("--f0_shift", required=True,
+                        type=int, help="f0 shift semi tone")
 
     # other setting
     parser.add_argument("--intervals", default=1000,
@@ -342,6 +337,7 @@ def main(args):
         lambda x: encode_mu_law(x, config.n_quantize)])
     feat_transform = transforms.Compose([
         lambda x: scaler.transform(x)])
+    f0_transform = transforms.Compose([partial(shift_semi_tone_f0_pulse, shift=args.f0_shift)])
 
     # define gpu decode function
     def gpu_decode(feat_list, gpu):
@@ -382,6 +378,7 @@ def main(args):
             feature_type=config.feature_type,
             wav_transform=wav_transform,
             feat_transform=feat_transform,
+            f0_transform=f0_transform,
             upsampling_factor=config.upsampling_factor,
             use_upsampling_layer=config.use_upsampling_layer,
             use_speaker_code=config.use_speaker_code,
