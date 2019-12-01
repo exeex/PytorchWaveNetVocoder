@@ -90,17 +90,19 @@ class WaveNetPulse(WaveNet):
 
 
         """
+
         output_sigmoid = dil_sigmoid(x)
         aux_output_sigmoid = aux_1x1_sigmoid(h)
         p_output_sigmoid = p_1x1_sigmoid(p)
 
         output_tanh = dil_tanh(x)
-        aux_output_tanh = aux_1x1_tanh(h)
+        # aux_output_tanh = aux_1x1_tanh(h)
         p_output_tanh = p_1x1_tanh(p)
 
         # print(output_sigmoid.shape, aux_output_sigmoid.shape, p_output_sigmoid.shape)
         output = torch.sigmoid(output_sigmoid + aux_output_sigmoid + p_output_sigmoid) * \
-                 torch.tanh(output_tanh + aux_output_tanh + p_output_tanh)
+                 torch.tanh(output_tanh + p_output_tanh)  # torch.tanh(output_tanh + aux_output_tanh + p_output_tanh)
+
         skip = skip_1x1(output)
         output = res_1x1(output)
         output = output + x
