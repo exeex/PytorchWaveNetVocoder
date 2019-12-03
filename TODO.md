@@ -14,4 +14,5 @@
 2019-11-30@10_20_47 : baseline fn=12
 2019-12-01@12_08_04 : remove aux signal in tanh
 2019-12-02@01_32_48 : add dropout
+2019-12-03@01_27_05 : add conv1d on p
 2019-12-03@14_46_57 : multiple p chan
