@@ -19,18 +19,18 @@ from .wavenet import WaveNet
 
 class WaveNetPulse(WaveNet):
 
-    def __init__(self, n_quantize=256, n_aux=28, n_p=1, n_resch=512, n_skipch=256,
+    def __init__(self, n_quantize=256, n_aux=28, n_p=12, n_resch=512, n_skipch=256,
                  dilation_depth=10, dilation_repeat=3, kernel_size=2, upsampling_factor=0):
 
         super(WaveNetPulse, self).__init__(n_quantize, n_aux, n_resch, n_skipch,
                                            dilation_depth, dilation_repeat, kernel_size, upsampling_factor)
 
         logging.info("Now you are using Wavenet PULSE version!!!")
-        self.n_p = n_p
+        self.n_p = n_p  # 12
 
-        self.p_conv = nn.Sequential(nn.Conv1d(self.n_p, 8, 3, padding=1),
-                                    nn.Conv1d(8, 16, 3, padding=1),
-                                    nn.Conv1d(16, 24, 3, padding=1))
+        self.p_conv = nn.Sequential(nn.Conv1d(self.n_p, 16, 3, padding=1),
+                                    nn.Conv1d(16, 18, 3, padding=1),
+                                    nn.Conv1d(18, 24, 3, padding=1))
 
         # for residual blocks
         self.p_1x1_sigmoid = nn.ModuleList()
@@ -56,7 +56,7 @@ class WaveNetPulse(WaveNet):
         if self.upsampling_factor > 0:
             h = self.upsampling(h)
 
-        p = p.unsqueeze(1)
+        # p = p.unsqueeze(1)
         # residual block
         p = self.p_conv(p)
         skip_connections = []

@@ -1,6 +1,6 @@
 
 
-~~1. add dropout on mcep aux~~
+~~1. add dropout on mcep aux~~  lower dropout rate
 ~~2. add 1D conv with p~~
 3. make additional dataset
 **4. multiple channel p + random roll**

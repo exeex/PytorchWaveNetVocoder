@@ -14,6 +14,13 @@ def p_trans_binary(p):
     return p
 
 
+def p_trans_binary_multi_channel(p, fn=12):
+    p_chans = [p[:, np.newaxis] == 2 ^ n for n in range(fn)]
+    p = np.concatenate(p_chans, axis=1)
+    p = p.astype(np.float32)
+    return p
+
+
 def validate_length(x, y, upsampling_factor=None):
     """VALIDATE LENGTH.
 
@@ -53,7 +60,7 @@ def train_generator(wav_list, feat_list, receptive_field,
                     feature_type="world",
                     wav_transform=None,
                     feat_transform=None,
-                    pulse_transform=p_trans_binary,
+                    pulse_transform=p_trans_binary_multi_channel,
                     shuffle=True,
                     upsampling_factor=80,
                     use_upsampling_layer=True,
@@ -144,7 +151,8 @@ def train_generator(wav_list, feat_list, receptive_field,
                 # make buffer array
                 if "x_buffer" not in locals():
                     x_buffer = np.empty((0), dtype=np.float32)
-                    p_buffer = np.empty((0), dtype=np.float32)
+                    # p_buffer = np.empty((0), dtype=np.float32)
+                    p_buffer = np.empty((0, p.shape[1]), dtype=np.float32)
                     h_buffer = np.empty((0, h.shape[1]), dtype=np.float32)
                 x_buffer = np.concatenate([x_buffer, x], axis=0)
                 p_buffer = np.concatenate([p_buffer, p], axis=0)
@@ -178,7 +186,7 @@ def train_generator(wav_list, feat_list, receptive_field,
                     # remove the last and first sample for training
                     batch_h += [h_.transpose(0, 1)]  # (D x T)
                     batch_x += [x_[:-1]]  # (T)
-                    batch_p += [p_[:-1]]  # (T)
+                    batch_p += [p_[:-1].transpose(0, 1)]  # (C x T)
                     batch_t += [x_[1:]]  # (T)
 
                     # set shift size

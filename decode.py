@@ -17,6 +17,7 @@ import torch.multiprocessing as mp
 
 from sklearn.preprocessing import StandardScaler
 from torchvision import transforms
+from torchvision import transforms
 
 from wavenet_vocoder.nets.wavenet_utils import decode_mu_law
 from wavenet_vocoder.nets.wavenet_utils import encode_mu_law
@@ -27,7 +28,7 @@ from wavenet_vocoder.utils import find_files
 from wavenet_vocoder.utils import read_hdf5
 from wavenet_vocoder.utils import read_txt
 from wavenet_vocoder.utils import shape_hdf5
-from dataset import p_trans_binary
+from dataset import p_trans_binary, p_trans_binary_multi_channel
 from functools import partial
 import pulse_world.pyworld as pw
 
@@ -81,7 +82,7 @@ def decode_generator(feat_list,
                      feature_type="world",
                      wav_transform=None,
                      feat_transform=None,
-                     pulse_transform=p_trans_binary,
+                     pulse_transform=p_trans_binary_multi_channel,
                      upsampling_factor=80,
                      use_upsampling_layer=True,
                      use_speaker_code=False,
@@ -184,7 +185,7 @@ def decode_generator(feat_list,
 
             # convert to torch variable
             batch_x = torch.from_numpy(batch_x).long()  # B, 1
-            batch_p = torch.from_numpy(batch_p).float().unsqueeze(1)  # B, C=1, T
+            batch_p = torch.from_numpy(batch_p).float().transpose(1, 2)  # B, C=12, T
             batch_h = torch.from_numpy(batch_h).float().transpose(1, 2)  # B, C, T(Frame)
 
             print(batch_x.shape, batch_p.shape, batch_h.shape)
