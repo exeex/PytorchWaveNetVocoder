@@ -28,12 +28,16 @@ class WaveNetPulse(WaveNet):
         logging.info("Now you are using Wavenet PULSE version!!!")
         self.n_p = n_p
 
+        self.p_conv = nn.Sequential(nn.Conv1d(self.n_p, 8, 3, padding=1),
+                                    nn.Conv1d(8, 16, 3, padding=1),
+                                    nn.Conv1d(16, 24, 3, padding=1))
+
         # for residual blocks
         self.p_1x1_sigmoid = nn.ModuleList()
         self.p_1x1_tanh = nn.ModuleList()
         for _ in self.dilations:
-            self.p_1x1_sigmoid += [nn.Conv1d(self.n_p, self.n_resch, 1)]
-            self.p_1x1_tanh += [nn.Conv1d(self.n_p, self.n_resch, 1)]
+            self.p_1x1_sigmoid += [nn.Conv1d(24, self.n_resch, 1)]
+            self.p_1x1_tanh += [nn.Conv1d(24, self.n_resch, 1)]
 
     def forward(self, x, h, p=None):
         """FORWARD CALCULATION.
@@ -54,6 +58,7 @@ class WaveNetPulse(WaveNet):
 
         p = p.unsqueeze(1)
         # residual block
+        p = self.p_conv(p)
         skip_connections = []
         for l in range(len(self.dilations)):
             output, skip = self._residual_forward(output, h,
