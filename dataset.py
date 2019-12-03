@@ -10,6 +10,7 @@ from scipy.io import wavfile as wf
 
 def p_trans_binary(p):
     p = (p > 0)
+    p = p[:, np.newaxis]
     p = p.astype(np.float32)
     return p
 
@@ -60,7 +61,7 @@ def train_generator(wav_list, feat_list, receptive_field,
                     feature_type="world",
                     wav_transform=None,
                     feat_transform=None,
-                    pulse_transform=p_trans_binary_multi_channel,
+                    pulse_transform=p_trans_binary,
                     shuffle=True,
                     upsampling_factor=80,
                     use_upsampling_layer=True,
