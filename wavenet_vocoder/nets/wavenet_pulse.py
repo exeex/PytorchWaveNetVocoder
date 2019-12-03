@@ -28,7 +28,7 @@ class WaveNetPulse(WaveNet):
         logging.info("Now you are using Wavenet PULSE version!!!")
         self.n_p = n_p  # 12
 
-        self.p_conv = nn.Sequential(nn.Conv1d(self.n_p, 24, 24, padding=1))
+        self.p_conv = nn.Sequential(nn.Conv1d(self.n_p, 24, 25, padding=12))
 
         # for residual blocks
         self.p_1x1_sigmoid = nn.ModuleList()
