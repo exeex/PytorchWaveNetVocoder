@@ -183,6 +183,8 @@ class WaveNetPulse(WaveNet):
             p = F.pad(p, (n_pad, 0), "constant", 0)
             h = F.pad(h, (n_pad, 0), "replicate")
 
+        p = self.p_conv(p)
+
         # prepare buffer
         output = self._preprocess(x)
         h_ = h[:, :, :x.size(1)]

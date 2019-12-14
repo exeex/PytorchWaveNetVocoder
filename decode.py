@@ -185,7 +185,7 @@ def decode_generator(feat_list,
 
             # convert to torch variable
             batch_x = torch.from_numpy(batch_x).long()  # B, 1
-            batch_p = torch.from_numpy(batch_p).float().transpose(1, 2)  # B, C=12, T
+            batch_p = torch.from_numpy(batch_p).float().transpose(1, 2)  # B, C=1, T
             batch_h = torch.from_numpy(batch_h).float().transpose(1, 2)  # B, C, T(Frame)
 
             print(batch_x.shape, batch_p.shape, batch_h.shape)
@@ -202,11 +202,11 @@ def decode_generator(feat_list,
 # pulse
 
 """
---checkpoint /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sdp/exp/pulse_repeat1_1130/checkpoint-130000.pkl
+--checkpoint /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sdp/exp/pulse_repeat1_1203/checkpoint-160000.pkl
 --feats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sdp/hdf5/ev_slt
---outdir eva_out_pulse
+--outdir eva_out_pulse1214
 --stats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sdp/data/tr_slt/stats.h5
---config /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sdp/exp/pulse_repeat1_1130/model.conf
+--config /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sdp/exp/pulse_repeat1_1203/model.conf
 --use_pulse
 --f0_shift 1
 """
