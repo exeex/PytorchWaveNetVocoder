@@ -42,7 +42,7 @@ feat_list_test = read_txt("data/ev_slt/feats.scp")
 waveforms = "data/tr_slt/wav_hpf.scp"
 feats = "data/tr_slt/feats.scp"
 stats = "data/tr_slt/stats.h5"
-expdir = "exp/pulse_repeat1_1203"
+expdir = "exp/pulse_repeat1_1214"
 
 writer = SummaryWriter(os.path.join(expdir, strftime('runs/%Y-%m-%d@%H_%M_%S', gmtime())))
 
