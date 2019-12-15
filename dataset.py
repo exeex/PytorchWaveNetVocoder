@@ -177,7 +177,8 @@ def train_generator(wav_list, feat_list, receptive_field,
                         h_ = feat_transform(h_)
 
                     if use_pulse:
-                        h_ = np.concatenate([h_[:, 0:1], h_[:, 2:]], axis=1)  # remove cont_f0_lpf
+                        # h_ = np.concatenate([h_[:, 0:1], h_[:, 2:]], axis=1)  # remove cont_f0_lpf
+                        h_ = np.concatenate([h_[:, 0:1], h_[:, -1:]], axis=1)  # remove cont_f0_lpf and mcep
 
                     # convert to torch variable
                     x_ = torch.from_numpy(x_).long()

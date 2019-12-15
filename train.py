@@ -42,7 +42,7 @@ feat_list_test = read_txt("data/ev_slt/feats.scp")
 waveforms = "data/tr_slt/wav_hpf.scp"
 feats = "data/tr_slt/feats.scp"
 stats = "data/tr_slt/stats.h5"
-expdir = "exp/pulse_repeat1_1214"
+expdir = "exp/pulse_repeat1_1216"
 
 writer = SummaryWriter(os.path.join(expdir, strftime('runs/%Y-%m-%d@%H_%M_%S', gmtime())))
 
@@ -115,7 +115,7 @@ class WaveNetTrainer:
                             help="feature type")
         # network structure setting
         parser.add_argument("--n_quantize", default=256, type=int, help="number of quantization")
-        parser.add_argument("--n_aux", default=27, type=int, help="number of dimension of aux feats")
+        parser.add_argument("--n_aux", default=2, type=int, help="number of dimension of aux feats")
         parser.add_argument("--n_resch", default=512, type=int, help="number of channels of residual output")
         parser.add_argument("--n_skipch", default=256, type=int, help="number of channels of skip output")
         parser.add_argument("--dilation_depth", default=10, type=int, help="depth of dilation")
@@ -161,7 +161,7 @@ class WaveNetTrainer:
 
         if self.args.use_pulse:
             _Wavenet = WaveNetPulse
-            assert self.args.n_aux == 27
+            assert self.args.n_aux == 2
         else:
             _Wavenet = WaveNet
             assert self.args.n_aux == 28
