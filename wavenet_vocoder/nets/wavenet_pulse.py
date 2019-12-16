@@ -17,6 +17,32 @@ from .wavenet_utils import CausalConv1d, UpSampling, OneHot
 from .wavenet import WaveNet
 
 
+class PulseConv1d(nn.Conv1d):
+    def __init__(self, in_ch, out_ch, kernel_size):
+        super(PulseConv1d, self).__init__(in_ch, out_ch, kernel_size=kernel_size, padding=kernel_size, bias=False)
+        self.__p_size = kernel_size
+    def forward(self, x):
+        y = super(PulseConv1d, self).forward(x)
+        y = y[:, :, self.__p_size+1:]
+        return y
+
+
+### test code ###
+# conv1d = PulseConv1d(1, 1, 3)
+# x = torch.FloatTensor([0,0,1,0,0,0,0,0,1,0,0,0,0])
+# x = x.unsqueeze(0).unsqueeze(0)
+# print(x.shape)
+# y = conv1d(x)
+# print(x.shape, y.shape)
+#
+# import matplotlib.pyplot as plt
+#
+# plt.plot(x[0,0,:])
+# plt.show()
+# plt.plot(y[0,0,:].detach().numpy())
+# plt.show()
+
+
 class WaveNetPulse(WaveNet):
 
     def __init__(self, n_quantize=256, n_aux=28, n_p=1, n_resch=512, n_skipch=256,
@@ -28,7 +54,7 @@ class WaveNetPulse(WaveNet):
         logging.info("Now you are using Wavenet PULSE version!!!")
         self.n_p = n_p  # 12
 
-        self.p_conv = nn.Sequential(nn.Conv1d(self.n_p, 24, 25, padding=12))
+        self.p_conv = PulseConv1d(self.n_p, 24, kernel_size=24)
 
         # for residual blocks
         self.p_1x1_sigmoid = nn.ModuleList()

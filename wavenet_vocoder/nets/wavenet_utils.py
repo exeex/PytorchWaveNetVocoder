@@ -51,7 +51,10 @@ def initialize(m):
     """
     if isinstance(m, nn.Conv1d):
         nn.init.xavier_uniform_(m.weight)
-        nn.init.constant_(m.bias, 0.0)
+        try:
+            nn.init.constant_(m.bias, 0.0)
+        except AttributeError:
+            pass
 
     if isinstance(m, nn.ConvTranspose2d):
         nn.init.constant_(m.weight, 1.0)
