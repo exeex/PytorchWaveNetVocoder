@@ -18,8 +18,8 @@ from .wavenet import WaveNet
 
 
 class PulseConv1d(nn.Conv1d):
-    def __init__(self, in_ch, out_ch, kernel_size):
-        super(PulseConv1d, self).__init__(in_ch, out_ch, kernel_size=kernel_size, padding=kernel_size, bias=True)
+    def __init__(self, in_ch, out_ch, kernel_size, bias=True):
+        super(PulseConv1d, self).__init__(in_ch, out_ch, kernel_size=kernel_size, padding=kernel_size, bias=bias)
         self.__p_size = kernel_size
 
         # TODO: try bias true
@@ -90,17 +90,20 @@ class WaveNetPulse(WaveNet):
         logging.info("Now you are using Wavenet PULSE version!!!")
         self.n_p = n_p  # 12
 
-        self.p_conv = PulseConv1d(self.n_p, 25, kernel_size=24)
-        self.upsampling = UpSamplingSmooth(upsampling_factor)
+        mcep_ch = 25
+        p_ch = mcep_ch*2
+        self.p_conv = PulseConv1d(self.n_p, p_ch, kernel_size=24)
+        self.mcep_norm = nn.BatchNorm1d(p_ch)
+        self.upsampling_mcep = nn.Sequential(nn.Conv1d(mcep_ch, p_ch, 1), UpSamplingSmooth(upsampling_factor))
 
         # for residual blocks
         self.p_1x1_sigmoid = nn.ModuleList()
         self.p_1x1_tanh = nn.ModuleList()
         for _ in self.dilations:
-            self.p_1x1_sigmoid += [nn.Conv1d(25, self.n_resch, 1)]
-            self.p_1x1_tanh += [nn.Conv1d(25, self.n_resch, 1)]
+            self.p_1x1_sigmoid += [nn.Conv1d(p_ch, self.n_resch, 1)]
+            self.p_1x1_tanh += [nn.Conv1d(p_ch, self.n_resch, 1)]
 
-        self.mcep_norm = nn.BatchNorm1d(25)
+
 
     def forward(self, x, h, p=None):
         """FORWARD CALCULATION.
@@ -116,14 +119,16 @@ class WaveNetPulse(WaveNet):
         """
         # preprocess
         output = self._preprocess(x)  # dilated conv x
-        if self.upsampling_factor > 0:
-            # print(self.upsampling_factor, h.shape)
-            h = self.upsampling(h)
-            # print(h.shape)
 
         mcep = h[:, 1:-1, :]  # extract mcep
         # h : (vuv[1]+mcep[25]+ap_code[1])
         h = torch.cat([h[:, 0:1, :], h[:, -1:, :]], axis=1)  # extract vuv ap_code
+
+        if self.upsampling_factor > 0:
+            h = self.upsampling(h)
+            # print(self.upsampling_factor, h.shape)
+            mcep = self.upsampling_mcep(mcep)
+            # print(h.shape)
 
         # p = p.unsqueeze(1)
         # residual block
