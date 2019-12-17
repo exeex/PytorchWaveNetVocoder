@@ -22,6 +22,8 @@ class PulseConv1d(nn.Conv1d):
         super(PulseConv1d, self).__init__(in_ch, out_ch, kernel_size=kernel_size, padding=kernel_size, bias=False)
         self.__p_size = kernel_size
 
+        # TODO: try bias true
+
     def forward(self, x):
         y = super(PulseConv1d, self).forward(x)
         y = y[:, :, self.__p_size + 1:]
@@ -40,7 +42,8 @@ class UpSamplingSmooth(nn.Module):
         super(UpSamplingSmooth, self).__init__()
         self.upsampling_factor = upsampling_factor
         self.upsample_layer = nn.Upsample(scale_factor=self.upsampling_factor)
-        self.smooth_kernel = nn.Parameter(torch.ones(1, 1, self.upsampling_factor) / self.upsampling_factor,requires_grad=False)
+        self.smooth_kernel = nn.Parameter(torch.ones(1, 1, self.upsampling_factor) / self.upsampling_factor,
+                                          requires_grad=False)
 
     def forward(self, x):
         """FORWARD CALCULATION.
@@ -55,8 +58,10 @@ class UpSamplingSmooth(nn.Module):
         """
         x = self.upsample_layer(x)  # B x C x T'
 
-        x = F.conv1d(x, self.smooth_kernel.expand([x.shape[1],-1,-1]), groups=x.shape[1], padding=self.upsampling_factor)
-        return x[:,:,self.upsampling_factor+1:]
+        x = F.conv1d(x, self.smooth_kernel.expand([x.shape[1], -1, -1]), groups=x.shape[1],
+                     padding=self.upsampling_factor)
+        return x[:, :, self.upsampling_factor + 1:]
+
 
 ### test code ###
 # conv1d = PulseConv1d(1, 1, 3)
@@ -119,7 +124,6 @@ class WaveNetPulse(WaveNet):
         mcep = h[:, 1:-1, :]  # extract mcep
         # h : (vuv[1]+mcep[25]+ap_code[1])
         h = torch.cat([h[:, 0:1, :], h[:, -1:, :]], axis=1)  # extract vuv ap_code
-
 
         # p = p.unsqueeze(1)
         # residual block
