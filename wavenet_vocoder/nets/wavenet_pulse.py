@@ -161,7 +161,7 @@ class WaveNetPulse(WaveNet):
 
         """
         mcep = self.mcep_norm(mcep)  # TODO: check mcep mean, max, min?
-        p = p * torch.sigmoid(mcep)
+        p = p * torch.relu(mcep)
 
         output_sigmoid = dil_sigmoid(x)
         aux_output_sigmoid = aux_1x1_sigmoid(h)
