@@ -55,8 +55,8 @@ class UpSamplingSmooth(nn.Module):
         """
         x = self.upsample_layer(x)  # B x C x T'
 
-        x = F.conv1d(x, self.smooth_kernel.expand([x.shape[1],-1,-1]), groups=x.shape[1])
-        return x
+        x = F.conv1d(x, self.smooth_kernel.expand([x.shape[1],-1,-1]), groups=x.shape[1], padding=self.upsampling_factor)
+        return x[:,:,self.upsampling_factor+1:]
 
 ### test code ###
 # conv1d = PulseConv1d(1, 1, 3)
@@ -92,8 +92,10 @@ class WaveNetPulse(WaveNet):
         self.p_1x1_sigmoid = nn.ModuleList()
         self.p_1x1_tanh = nn.ModuleList()
         for _ in self.dilations:
-            self.p_1x1_sigmoid += [nn.Conv1d(24, self.n_resch, 1)]
-            self.p_1x1_tanh += [nn.Conv1d(24, self.n_resch, 1)]
+            self.p_1x1_sigmoid += [nn.Conv1d(25, self.n_resch, 1)]
+            self.p_1x1_tanh += [nn.Conv1d(25, self.n_resch, 1)]
+
+        self.mcep_norm = nn.BatchNorm1d(25)
 
     def forward(self, x, h, p=None):
         """FORWARD CALCULATION.
@@ -110,12 +112,15 @@ class WaveNetPulse(WaveNet):
         # preprocess
         output = self._preprocess(x)  # dilated conv x
         if self.upsampling_factor > 0:
+            # print(self.upsampling_factor, h.shape)
             h = self.upsampling(h)
+            # print(h.shape)
 
+        mcep = h[:, 1:-1, :]  # extract mcep
         # h : (vuv[1]+mcep[25]+ap_code[1])
         h = torch.cat([h[:, 0:1, :], h[:, -1:, :]], axis=1)  # extract vuv ap_code
-        mcep = h[:, 1:-1, :]  # extract mcep
-        self.mcep_norm = nn.BatchNorm1d(25)
+
+
         # p = p.unsqueeze(1)
         # residual block
         p = self.p_conv(p)
@@ -156,7 +161,7 @@ class WaveNetPulse(WaveNet):
 
         """
         mcep = self.mcep_norm(mcep)  # TODO: check mcep mean, max, min?
-        p = p * F.relu(mcep)
+        p = p * torch.sigmoid(mcep)
 
         output_sigmoid = dil_sigmoid(x)
         aux_output_sigmoid = aux_1x1_sigmoid(h)
