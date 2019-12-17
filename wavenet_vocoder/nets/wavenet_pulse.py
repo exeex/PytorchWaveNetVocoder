@@ -19,7 +19,7 @@ from .wavenet import WaveNet
 
 class PulseConv1d(nn.Conv1d):
     def __init__(self, in_ch, out_ch, kernel_size):
-        super(PulseConv1d, self).__init__(in_ch, out_ch, kernel_size=kernel_size, padding=kernel_size, bias=False)
+        super(PulseConv1d, self).__init__(in_ch, out_ch, kernel_size=kernel_size, padding=kernel_size, bias=True)
         self.__p_size = kernel_size
 
         # TODO: try bias true
