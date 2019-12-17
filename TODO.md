@@ -9,6 +9,8 @@
 7. run no pulse repeat1 evaluate f0 shift semi-tone
 8. improve evaluate
 ~~9. not using future p~~
+10. integrate mask mcep on p (channel_gate)
+
 
 # make time GMT+8:00
 

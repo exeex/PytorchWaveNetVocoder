@@ -21,11 +21,42 @@ class PulseConv1d(nn.Conv1d):
     def __init__(self, in_ch, out_ch, kernel_size):
         super(PulseConv1d, self).__init__(in_ch, out_ch, kernel_size=kernel_size, padding=kernel_size, bias=False)
         self.__p_size = kernel_size
+
     def forward(self, x):
         y = super(PulseConv1d, self).forward(x)
-        y = y[:, :, self.__p_size+1:]
+        y = y[:, :, self.__p_size + 1:]
         return y
 
+
+class UpSamplingSmooth(nn.Module):
+    """UPSAMPLING LAYER WITH DECONVOLUTION.
+
+    Args:
+        upsampling_factor (int): Upsampling factor.
+
+    """
+
+    def __init__(self, upsampling_factor):
+        super(UpSamplingSmooth, self).__init__()
+        self.upsampling_factor = upsampling_factor
+        self.upsample_layer = nn.Upsample(scale_factor=self.upsampling_factor)
+        self.smooth_kernel = nn.Parameter(torch.ones(1, 1, self.upsampling_factor) / self.upsampling_factor,requires_grad=False)
+
+    def forward(self, x):
+        """FORWARD CALCULATION.
+
+        Args:
+            x (Tensor): Float tensor variable with the shape (B, C, T).
+
+        Returns:
+            Tensor: Float tensor variable with the shape (B, C, T'),
+                where T' = T * upsampling_factor.
+
+        """
+        x = self.upsample_layer(x)  # B x C x T'
+
+        x = F.conv1d(x, self.smooth_kernel.expand([x.shape[1],-1,-1]), groups=x.shape[1])
+        return x
 
 ### test code ###
 # conv1d = PulseConv1d(1, 1, 3)
@@ -54,7 +85,8 @@ class WaveNetPulse(WaveNet):
         logging.info("Now you are using Wavenet PULSE version!!!")
         self.n_p = n_p  # 12
 
-        self.p_conv = PulseConv1d(self.n_p, 24, kernel_size=24)
+        self.p_conv = PulseConv1d(self.n_p, 25, kernel_size=24)
+        self.upsampling = UpSamplingSmooth(upsampling_factor)
 
         # for residual blocks
         self.p_1x1_sigmoid = nn.ModuleList()
@@ -80,6 +112,10 @@ class WaveNetPulse(WaveNet):
         if self.upsampling_factor > 0:
             h = self.upsampling(h)
 
+        # h : (vuv[1]+mcep[25]+ap_code[1])
+        h = torch.cat([h[:, 0:1, :], h[:, -1:, :]], axis=1)  # extract vuv ap_code
+        mcep = h[:, 1:-1, :]  # extract mcep
+        self.mcep_norm = nn.BatchNorm1d(25)
         # p = p.unsqueeze(1)
         # residual block
         p = self.p_conv(p)
@@ -89,7 +125,7 @@ class WaveNetPulse(WaveNet):
                                                   self.dil_sigmoid[l], self.dil_tanh[l],
                                                   self.aux_1x1_sigmoid[l], self.aux_1x1_tanh[l],
                                                   self.skip_1x1[l], self.res_1x1[l],
-                                                  p, self.p_1x1_sigmoid[l], self.p_1x1_tanh[l], )
+                                                  p, self.p_1x1_sigmoid[l], self.p_1x1_tanh[l], mcep)
             skip_connections.append(skip)
 
         # skip-connection part
@@ -102,7 +138,7 @@ class WaveNetPulse(WaveNet):
                           dil_sigmoid, dil_tanh,
                           aux_1x1_sigmoid, aux_1x1_tanh,
                           skip_1x1, res_1x1,
-                          p=None, p_1x1_sigmoid=None, p_1x1_tanh=None):
+                          p=None, p_1x1_sigmoid=None, p_1x1_tanh=None, mcep=None):
         """
 
         Visualization of tensor connection:
@@ -114,11 +150,13 @@ class WaveNetPulse(WaveNet):
        [h]_____(1x1)____________|    |                 |       |
             |__(1x1)____________|____|                (x)___(res_1x1)_____[output:qch]
                                 |    |                 |
-       [p]_____(1x1)____________|    |                 |
-            |__(1x1)________________(+)______(sigm)____|
+       [p]______(*)______(1x1)__|    |                 |
+       [mcep]____|   |___(1x1)______(+)______(sigm)____|
 
 
         """
+        mcep = self.mcep_norm(mcep)  # TODO: check mcep mean, max, min?
+        p = p * F.relu(mcep)
 
         output_sigmoid = dil_sigmoid(x)
         aux_output_sigmoid = aux_1x1_sigmoid(h)
