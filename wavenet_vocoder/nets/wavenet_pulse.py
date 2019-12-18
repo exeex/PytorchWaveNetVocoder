@@ -41,7 +41,7 @@ class PulseConv1d(nn.Conv1d):
     def forward(self, x):
         y = super(PulseConv1d, self).forward(x)
         # y = y[:, :, : -self.__p_size - 1]
-        y = y[:, :, self.__p_size + 1: ]
+        y = y[:, :, self.__p_size + 1:]
         return y
 
 
@@ -53,11 +53,31 @@ class UpSamplingSmooth(nn.Module):
 
     """
 
-    def __init__(self, upsampling_factor):
+    def __init__(self, upsampling_factor, p_ch=50, kernel_size=None):
         super(UpSamplingSmooth, self).__init__()
         self.upsampling_factor = upsampling_factor
-        self.upsample_layer = nn.Upsample(scale_factor=self.upsampling_factor)
-        self.smooth_kernel = nn.Parameter(torch.ones(1, 1, self.upsampling_factor) / self.upsampling_factor,
+        # self.upsample_layer = nn.Upsample(scale_factor=self.upsampling_factor)
+        self.upsample_layer = UpSampling(upsampling_factor)
+
+        # convs = []
+        # convs.append(Residual1d(PulseConv1d(p_ch, p_ch, kernel_size=10),
+        #                         PulseConv1d(p_ch, p_ch, kernel_size=10),
+        #                         nn.BatchNorm1d(p_ch),
+        #                         nn.LeakyReLU()))
+        # convs.append(Residual1d(PulseConv1d(p_ch, p_ch, kernel_size=10),
+        #                         PulseConv1d(p_ch, p_ch, kernel_size=10),
+        #                         nn.BatchNorm1d(p_ch),
+        #                         nn.LeakyReLU()))
+        #
+        # self.convs = nn.Sequential(*convs)
+
+        if not kernel_size:
+            self.kernel_size = upsampling_factor
+        else:
+            self.kernel_size = kernel_size
+
+        # box blur
+        self.smooth_kernel = nn.Parameter(torch.ones(1, 1, self.kernel_size) / self.kernel_size,
                                           requires_grad=False)
 
     def forward(self, x):
@@ -72,11 +92,11 @@ class UpSamplingSmooth(nn.Module):
 
         """
         x = self.upsample_layer(x)  # B x C x T'
-
+        # x = self.convs(x)
         x = F.conv1d(x, self.smooth_kernel.expand([x.shape[1], -1, -1]), groups=x.shape[1],
-                     padding=self.upsampling_factor)
+                     padding=self.kernel_size)
         # return x[:, :, : -self.upsampling_factor - 1]
-        return x[:, :, self.upsampling_factor + 1:]
+        return x[:, :, self.kernel_size + 1:]
 
 
 ### test code ###
@@ -210,8 +230,8 @@ class WaveNetPulse(WaveNet):
 
         skip = skip_1x1(output)
         output = res_1x1(output)
-        output = output + x
-        # output = output + x[:, :, -1:]  # B x C x 1
+        # output = output + x
+        output = output + x[:, :, output.shape[2]:]  # B x C x T_output
         return output, skip
 
     def _generate_residual_forward(self, x, h,
@@ -219,38 +239,12 @@ class WaveNetPulse(WaveNet):
                                    aux_1x1_sigmoid, aux_1x1_tanh,
                                    skip_1x1, res_1x1,
                                    p=None, p_1x1_sigmoid=None, p_1x1_tanh=None):
-        """
 
-        Visualization of tensor connection:
-         ________________________(skip_1x1)______________________________[skip:resch]
-        |                                                      |
-       [x]_____(dil)___________(+)___________(tanh)____        |
-            |__(dil)____________|____                  |       |
-                                |    |                 |       |
-       [h]_____(1x1)____________|    |                 |       |
-            |__(1x1)____________|____|                (x)___(res_1x1)_____[output:qch]
-                                |    |                 |
-       [p]_____(1x1)____________|    |                 |
-            |__(1x1)________________(+)______(sigm)____|
-
-
-        """
-        output_sigmoid = dil_sigmoid(x)[:, :, -1:]
-        aux_output_sigmoid = aux_1x1_sigmoid(h)
-        p_output_sigmoid = p_1x1_sigmoid(p)
-
-        output_tanh = dil_tanh(x)[:, :, -1:]
-        aux_output_tanh = aux_1x1_tanh(h)
-        p_output_tanh = p_1x1_tanh(p)
-
-        # print(output_sigmoid.shape, aux_output_sigmoid.shape, p_output_sigmoid.shape)
-        output = torch.sigmoid(output_sigmoid + aux_output_sigmoid + p_output_sigmoid) * \
-                 torch.tanh(output_tanh + aux_output_tanh + p_output_tanh)  # TODO: fix this
-        skip = skip_1x1(output)
-        output = res_1x1(output)
-        # output = output + x
-        output = output + x[:, :, -1:]  # B x C x 1
-        return output, skip
+        return self._residual_forward(x, h,
+                                      dil_sigmoid, dil_tanh,
+                                      aux_1x1_sigmoid, aux_1x1_tanh,
+                                      skip_1x1, res_1x1,
+                                      p, p_1x1_sigmoid, p_1x1_tanh)
 
     def batch_fast_generate(self, x, h, n_samples_list, *args, intervals=None, mode="sampling"):
         """GENERATE WAVEFORM WITH FAST ALGORITHM IN BATCH MODE.
