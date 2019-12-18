@@ -25,3 +25,4 @@
 2019-12-16@04_37_29 : not using future p
 2019-12-17@05_33_30 : p channel gated by mcep
 2019-12-17@14_39_43 : 50 p aux_ch, fix vuv and ap_code wrong way
+2019-12-18@01_04_02 : try fn=1 random phase

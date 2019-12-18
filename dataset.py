@@ -6,10 +6,12 @@ import soundfile as sf
 from wavenet_vocoder.utils import read_hdf5
 import torch
 from scipy.io import wavfile as wf
+import random
 
 
 def p_trans_binary(p):
-    p = (p > 0)
+    n = random.choice(range(12))
+    p = (p == (2 << n))
     p = p[:, np.newaxis]
     p = p.astype(np.float32)
     return p
@@ -177,7 +179,8 @@ def train_generator(wav_list, feat_list, receptive_field,
                         h_ = feat_transform(h_)
 
                     if use_pulse:
-                        h_ = np.concatenate([h_[:, 0:1], h_[:, 2:]], axis=1)  # remove cont_f0_lpf (vuv[1]+mcep[25]+ap_code[1])
+                        h_ = np.concatenate([h_[:, 0:1], h_[:, 2:]],
+                                            axis=1)  # remove cont_f0_lpf (vuv[1]+mcep[25]+ap_code[1])
                         # h_ = np.concatenate([h_[:, 0:1], h_[:, -1:]], axis=1)  # remove cont_f0_lpf and mcep (vuv[1]+ap_code[1])
                         # mcep = h_[:, 1:-2]  # extract mcep
 
