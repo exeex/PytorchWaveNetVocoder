@@ -17,6 +17,20 @@ from .wavenet_utils import CausalConv1d, UpSampling, OneHot
 from .wavenet import WaveNet
 
 
+class Residual1d(nn.Module):
+    def __init__(self, *modules):
+        super(Residual1d, self).__init__()
+        self.seq = nn.Sequential(*modules)
+        self.weight = nn.Parameter(torch.ones(1), requires_grad=True)
+        # TODO: try bias true
+
+    def forward(self, x):
+        skip = x
+        x = self.seq(x)
+        y = x * self.weight.expand_as(x) + skip
+        return y
+
+
 class PulseConv1d(nn.Conv1d):
     def __init__(self, in_ch, out_ch, kernel_size, bias=True):
         super(PulseConv1d, self).__init__(in_ch, out_ch, kernel_size=kernel_size, padding=kernel_size, bias=bias)
@@ -26,7 +40,7 @@ class PulseConv1d(nn.Conv1d):
 
     def forward(self, x):
         y = super(PulseConv1d, self).forward(x)
-        y = y[:, :, self.__p_size + 1:]
+        y = y[:, :, : -self.__p_size - 1]
         return y
 
 
@@ -60,7 +74,7 @@ class UpSamplingSmooth(nn.Module):
 
         x = F.conv1d(x, self.smooth_kernel.expand([x.shape[1], -1, -1]), groups=x.shape[1],
                      padding=self.upsampling_factor)
-        return x[:, :, self.upsampling_factor + 1:]
+        return x[:, :, : -self.upsampling_factor - 1]
 
 
 ### test code ###
@@ -91,7 +105,7 @@ class WaveNetPulse(WaveNet):
         self.n_p = n_p  # 12
 
         mcep_ch = 25
-        p_ch = mcep_ch*2
+        p_ch = mcep_ch * 2
         self.p_conv = PulseConv1d(self.n_p, p_ch, kernel_size=24)
         self.mcep_norm = nn.BatchNorm1d(p_ch)
         self.upsampling_mcep = nn.Sequential(nn.Conv1d(mcep_ch, p_ch, 1), UpSamplingSmooth(upsampling_factor))
@@ -102,8 +116,6 @@ class WaveNetPulse(WaveNet):
         for _ in self.dilations:
             self.p_1x1_sigmoid += [nn.Conv1d(p_ch, self.n_resch, 1)]
             self.p_1x1_tanh += [nn.Conv1d(p_ch, self.n_resch, 1)]
-
-
 
     def forward(self, x, h, p=None):
         """FORWARD CALCULATION.

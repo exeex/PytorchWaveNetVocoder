@@ -26,3 +26,5 @@
 2019-12-17@05_33_30 : p channel gated by mcep
 2019-12-17@14_39_43 : 50 p aux_ch, fix vuv and ap_code wrong way
 2019-12-18@01_04_02 : try fn=1 random phase
+2019-12-18@11_19_44 : try harmonic 4
+2019-12-18@16_55_37 : try 2 layer p conv1d
