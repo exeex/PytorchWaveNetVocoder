@@ -11,15 +11,21 @@ import random
 
 def p_trans_binary(p):
     n = random.choice(range(12))
-    p = (p == (2 << n))
+    p = (p == (1 << n))
     p = p[:, np.newaxis]
     p = p.astype(np.float32)
     return p
 
 
 def p_trans_binary_multi_channel(p, fn=12):
-    p_chans = [p[:, np.newaxis] == 2 ^ n for n in range(fn)]
-    p = np.concatenate(p_chans, axis=1)
+    # p_chans = [p[:, np.newaxis] == 2 ^ n for n in range(fn)]
+
+    p_1 = (p[:, np.newaxis] & 0b000000000001) > 0
+    p_2 = (p[:, np.newaxis] & 0b000001000001) > 0
+    p_3 = (p[:, np.newaxis] & 0b000100010001) > 0
+    p_4 = (p[:, np.newaxis] & 0b001001001001) > 0
+
+    p = np.concatenate([p_1, p_2, p_3, p_4], axis=1)
     p = p.astype(np.float32)
     return p
 
@@ -63,7 +69,7 @@ def train_generator(wav_list, feat_list, receptive_field,
                     feature_type="world",
                     wav_transform=None,
                     feat_transform=None,
-                    pulse_transform=p_trans_binary,
+                    pulse_transform=p_trans_binary_multi_channel,
                     shuffle=True,
                     upsampling_factor=80,
                     use_upsampling_layer=True,
