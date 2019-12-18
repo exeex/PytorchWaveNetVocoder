@@ -28,3 +28,5 @@
 2019-12-18@01_04_02 : try fn=1 random phase
 2019-12-18@11_19_44 : try harmonic 4
 2019-12-18@16_55_37 : try 2 layer p conv1d
+2019-12-18@17_34_58 : fix pad side <- bad attempt, canceled
+2019-12-18@16_55_37 : try 2 layer p conv1d with residual skip

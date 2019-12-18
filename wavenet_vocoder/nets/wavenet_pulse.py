@@ -40,7 +40,8 @@ class PulseConv1d(nn.Conv1d):
 
     def forward(self, x):
         y = super(PulseConv1d, self).forward(x)
-        y = y[:, :, : -self.__p_size - 1]
+        # y = y[:, :, : -self.__p_size - 1]
+        y = y[:, :, self.__p_size + 1: ]
         return y
 
 
@@ -74,7 +75,8 @@ class UpSamplingSmooth(nn.Module):
 
         x = F.conv1d(x, self.smooth_kernel.expand([x.shape[1], -1, -1]), groups=x.shape[1],
                      padding=self.upsampling_factor)
-        return x[:, :, : -self.upsampling_factor - 1]
+        # return x[:, :, : -self.upsampling_factor - 1]
+        return x[:, :, self.upsampling_factor + 1:]
 
 
 ### test code ###
@@ -106,7 +108,14 @@ class WaveNetPulse(WaveNet):
 
         mcep_ch = 25
         p_ch = mcep_ch * 2
-        self.p_conv = PulseConv1d(self.n_p, p_ch, kernel_size=24)
+        self.p_conv = []
+        self.p_conv.append(PulseConv1d(self.n_p, p_ch, kernel_size=24))
+        # self.p_conv.append(Residual1d(PulseConv1d(p_ch, p_ch, kernel_size=24),
+        #                               PulseConv1d(p_ch, p_ch, kernel_size=24),
+        #                               nn.BatchNorm1d(p_ch),
+        #                               nn.LeakyReLU()))
+        self.p_conv = nn.Sequential(*self.p_conv)
+
         self.mcep_norm = nn.BatchNorm1d(p_ch)
         self.upsampling_mcep = nn.Sequential(nn.Conv1d(mcep_ch, p_ch, 1), UpSamplingSmooth(upsampling_factor))
 
@@ -186,15 +195,18 @@ class WaveNetPulse(WaveNet):
 
         output_sigmoid = dil_sigmoid(x)
         aux_output_sigmoid = aux_1x1_sigmoid(h)
-        p_output_sigmoid = p_1x1_sigmoid(p)
+        # p_output_sigmoid = p_1x1_sigmoid(p)
 
         output_tanh = dil_tanh(x)
         # aux_output_tanh = aux_1x1_tanh(h)
         p_output_tanh = p_1x1_tanh(p)
 
         # print(output_sigmoid.shape, aux_output_sigmoid.shape, p_output_sigmoid.shape)
-        output = torch.sigmoid(output_sigmoid + aux_output_sigmoid + p_output_sigmoid) * \
-                 torch.tanh(output_tanh + p_output_tanh)  # torch.tanh(output_tanh + aux_output_tanh + p_output_tanh)
+        output = torch.sigmoid(output_sigmoid + aux_output_sigmoid) * \
+                 torch.tanh(output_tanh + p_output_tanh)
+
+        # output = torch.sigmoid(output_sigmoid + aux_output_sigmoid + p_output_sigmoid) * \
+        #          torch.tanh(output_tanh + aux_output_tanh + p_output_tanh)
 
         skip = skip_1x1(output)
         output = res_1x1(output)
@@ -233,7 +245,7 @@ class WaveNetPulse(WaveNet):
 
         # print(output_sigmoid.shape, aux_output_sigmoid.shape, p_output_sigmoid.shape)
         output = torch.sigmoid(output_sigmoid + aux_output_sigmoid + p_output_sigmoid) * \
-                 torch.tanh(output_tanh + aux_output_tanh + p_output_tanh)
+                 torch.tanh(output_tanh + aux_output_tanh + p_output_tanh)  # TODO: fix this
         skip = skip_1x1(output)
         output = res_1x1(output)
         # output = output + x
