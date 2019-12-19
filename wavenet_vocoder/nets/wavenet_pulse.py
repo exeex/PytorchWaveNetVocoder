@@ -166,17 +166,15 @@ class WaveNetPulse(WaveNet):
         # preprocess
         output = self._preprocess(x)  # dilated conv x
 
-        mcep = h[:, 1:-1, :]  # extract mcep
-        # h : (vuv[1]+mcep[25]+ap_code[1])
-        h = torch.cat([h[:, 0:1, :], h[:, -1:, :]], axis=1)  # extract vuv ap_code
+        # extract mcep
+        mcep = h[:, 1:-1, :]  # h : mcep[25]
+        h = torch.cat([h[:, 0:1, :], h[:, -1:, :]], axis=1)  # extract vuv vuv[1]+ap_code[1]
 
+        # upsampling
         if self.upsampling_factor > 0:
             h = self.upsampling(h)
-            # print(self.upsampling_factor, h.shape)
             mcep = self.upsampling_mcep(mcep)
-            # print(h.shape)
 
-        # p = p.unsqueeze(1)
         # residual block
         p = self.p_conv(p)
         skip_connections = []
@@ -215,6 +213,7 @@ class WaveNetPulse(WaveNet):
 
 
         """
+        # print('mcep_s', mcep.shape)
         mcep = self.mcep_norm(mcep)  # TODO: check mcep mean, max, min?
         p = p * torch.relu(mcep)
 
@@ -225,6 +224,8 @@ class WaveNetPulse(WaveNet):
         output_tanh = dil_tanh(x)
         # aux_output_tanh = aux_1x1_tanh(h)
         p_output_tanh = p_dil_tanh(p)
+
+        # print(x.shape, p.shape)
 
         # print(output_sigmoid.shape, aux_output_sigmoid.shape, p_output_sigmoid.shape)
         output = torch.sigmoid(output_sigmoid + aux_output_sigmoid) * \
@@ -243,13 +244,13 @@ class WaveNetPulse(WaveNet):
                                    dil_sigmoid, dil_tanh,
                                    aux_1x1_sigmoid, aux_1x1_tanh,
                                    skip_1x1, res_1x1,
-                                   p=None, p_1x1_sigmoid=None, p_1x1_tanh=None):
+                                   p=None, p_1x1_sigmoid=None, p_1x1_tanh=None, mcep=None):
 
         return self._residual_forward(x, h,
                                       dil_sigmoid, dil_tanh,
                                       aux_1x1_sigmoid, aux_1x1_tanh,
                                       skip_1x1, res_1x1,
-                                      p, p_1x1_sigmoid, p_1x1_tanh)
+                                      p, p_1x1_sigmoid, p_1x1_tanh, mcep)
 
     def batch_fast_generate(self, x, h, n_samples_list, *args, intervals=None, mode="sampling"):
         """GENERATE WAVEFORM WITH FAST ALGORITHM IN BATCH MODE.
@@ -273,23 +274,29 @@ class WaveNetPulse(WaveNet):
         min_n_samples = min(n_samples_list)
         min_idx = np.argmin(n_samples_list)
 
+        # extract mcep
+        mcep = h[:, 1:-1, :]  # h : mcep[25]
+        h = torch.cat([h[:, 0:1, :], h[:, -1:, :]], axis=1)  # extract vuv vuv[1]+ap_code[1]
+
         # upsampling
         if self.upsampling_factor > 0:
             h = self.upsampling(h)
+            mcep = self.upsampling_mcep(mcep)
 
         # padding if the length less than
         n_pad = self.receptive_field - x.size(1)
         if n_pad > 0:
             x = F.pad(x, (n_pad, 0), "constant", self.n_quantize // 2)
-            p = F.pad(p, (n_pad, 0), "constant", 0)
+            p = F.pad(p, (n_pad, 0), "reflect")  # TODO: check pad
             h = F.pad(h, (n_pad, 0), "replicate")
-
-        p = self.p_conv(p)
+            mcep = F.pad(mcep, (n_pad, 0), "replicate")
 
         # prepare buffer
         output = self._preprocess(x)
+        p = self.p_conv(p)
         h_ = h[:, :, :x.size(1)]
         p_ = p[:, :, :x.size(1)]
+        mcep_ = mcep[:, :, :x.size(1)]
         output_buffer = []
         buffer_size = []
         for l, d in enumerate(self.dilations):
@@ -297,32 +304,41 @@ class WaveNetPulse(WaveNet):
                                                self.dil_sigmoid[l], self.dil_tanh[l],
                                                self.aux_1x1_sigmoid[l], self.aux_1x1_tanh[l],
                                                self.skip_1x1[l], self.res_1x1[l],
-                                               p_, self.p_dil_sigmoid[l], self.p_dil_tanh[l])
-            if d == 2 ** (self.dilation_depth - 1):
+                                               p_, self.p_dil_sigmoid[l], self.p_dil_tanh[l], mcep_)
+            if d == 2 ** (self.dilation_depth - 1):  # last layer
                 buffer_size.append(self.kernel_size - 1)
             else:
                 buffer_size.append(d * 2 * (self.kernel_size - 1))
             output_buffer.append(output[:, :, -buffer_size[l] - 1: -1])
 
+        # print(output.shape)
+
+        # TODO: p and mcep buffer
         # generate
         samples = x  # B x T
         end_samples = []
         start = time.time()
         for i in range(max_n_samples):
-            output = samples[:, -self.kernel_size * 2 + 1:]
-            # _p = p[:, -self.kernel_size * 2 + 1:]
+            output = samples[:, -self.kernel_size * 2 + 1:]  # B x T
+            # print('output_s',output.shape)
+            # print('pshape', p.shape, 'sample_shape', samples.shape)
             output = self._preprocess(output)  # B x C x T
             h_ = h[:, :, samples.size(-1) - 1].contiguous().unsqueeze(-1)  # B x C x 1
-            p_ = p[:, :, samples.size(-1) - 1].contiguous().unsqueeze(-1)  # B x C x 1
+            # p_ = p[:, :, samples.size(-1) - 1].contiguous().unsqueeze(-1)  # B x C x 1
             output_buffer_next = []
             skip_connections = []
             for l, d in enumerate(self.dilations):
                 # a = output.shape
+                p_ = p[:, :, buffer_size[l]+i:]  # B x C x T
+                p_ = p_[:, :, -buffer_size[l]:]  # B x C x T
+                mcep_ = mcep[:, :, buffer_size[l]+i:]  # B x C x T
+                mcep_ = mcep_[:, :, -buffer_size[l]:]  # B x C x T
+
                 output, skip = self._generate_residual_forward(output, h_,
                                                                self.dil_sigmoid[l], self.dil_tanh[l],
                                                                self.aux_1x1_sigmoid[l], self.aux_1x1_tanh[l],
                                                                self.skip_1x1[l], self.res_1x1[l],
-                                                               p_, self.p_1x1_sigmoid[l], self.p_1x1_tanh[l])
+                                                               p_, self.p_dil_sigmoid[l], self.p_dil_tanh[l], mcep_)
                 # print(output.shape, skip.shape)
 
                 output = torch.cat([output_buffer[l], output], dim=2)

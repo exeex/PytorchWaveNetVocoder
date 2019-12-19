@@ -82,7 +82,7 @@ def decode_generator(feat_list,
                      feature_type="world",
                      wav_transform=None,
                      feat_transform=None,
-                     pulse_transform=p_trans_binary,
+                     pulse_transform=p_trans_binary_multi_channel,
                      upsampling_factor=80,
                      use_upsampling_layer=True,
                      use_speaker_code=False,
@@ -202,13 +202,13 @@ def decode_generator(feat_list,
 # pulse
 
 """
---checkpoint /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sdp/exp/pulse_repeat1_1203/checkpoint-160000.pkl
+--checkpoint /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sdp/exp/pulse_repeat1_1218/checkpoint-160000.pkl
 --feats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sdp/hdf5/ev_slt
---outdir eva_out_pulse1214
+--outdir eva_out_pulse1218
 --stats /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sdp/data/tr_slt/stats.h5
---config /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sdp/exp/pulse_repeat1_1203/model.conf
+--config /home/cswu/research/PytorchWaveNetVocoder/egs/arctic/sdp/exp/pulse_repeat1_1218/model.conf
 --use_pulse
---f0_shift 1
+--f0_shift 0
 """
 
 # no pulse repeat1

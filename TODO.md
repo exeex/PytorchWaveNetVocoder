@@ -27,13 +27,15 @@
 2019-12-17@14_39_43 : 50 p aux_ch, fix vuv and ap_code wrong way
 2019-12-18@01_04_02 : try fn=1 random phase
 2019-12-18@11_19_44 : try harmonic 4
-2019-12-18@16_55_37 : try 2 layer p conv1d
+2019-12-18@16_55_37 : try 2 layer p conv1d <- bad attempt
 2019-12-18@17_34_58 : fix pad side <- bad attempt, canceled
-2019-12-18@16_55_37 : try 2 layer p conv1d with residual skip
+2019-12-18@16_55_37 : try 2 layer p conv1d with residual skip <- bad attempt
 2019-12-18@20_13_04 : remove p conv input in sigmoid <- good attempt
 2019-12-18@21_42_51 : use transpose conv1 as upsampling instead of expand <- good attempt
 2019-12-19@00_06_10 : use dilate conv at p <- good attempt
-2019-12-19@00_38_25 : add leakReLU at mcep before upsample
+2019-12-19@00_38_25 : add leakReLU at mcep before upsample <- bad attempt
 
 
 try: modify mcep : is batch norm good?
+
+## TODO: p and mcep buffer
