@@ -32,5 +32,8 @@
 2019-12-18@16_55_37 : try 2 layer p conv1d with residual skip
 2019-12-18@20_13_04 : remove p conv input in sigmoid <- good attempt
 2019-12-18@21_42_51 : use transpose conv1 as upsampling instead of expand <- good attempt
-2019-12-19@00_06_10 : use dilate conv at p
-try: modify mcep
+2019-12-19@00_06_10 : use dilate conv at p <- good attempt
+2019-12-19@00_38_25 : add leakReLU at mcep before upsample
+
+
+try: modify mcep : is batch norm good?

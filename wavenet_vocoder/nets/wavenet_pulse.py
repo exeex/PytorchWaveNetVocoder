@@ -136,7 +136,8 @@ class WaveNetPulse(WaveNet):
         #                               nn.LeakyReLU()))
         self.p_conv = nn.Sequential(*self.p_conv)
 
-        self.mcep_norm = nn.BatchNorm1d(p_ch)
+        self.mcep_norm = nn.Sequential(nn.BatchNorm1d(p_ch), nn.LeakyReLU(p_ch))  # try?
+
         self.upsampling_mcep = nn.Sequential(nn.Conv1d(mcep_ch, p_ch, 1), UpSamplingSmooth(upsampling_factor))
 
         # for residual blocks
