@@ -140,11 +140,15 @@ class WaveNetPulse(WaveNet):
         self.upsampling_mcep = nn.Sequential(nn.Conv1d(mcep_ch, p_ch, 1), UpSamplingSmooth(upsampling_factor))
 
         # for residual blocks
-        self.p_1x1_sigmoid = nn.ModuleList()
-        self.p_1x1_tanh = nn.ModuleList()
-        for _ in self.dilations:
-            self.p_1x1_sigmoid += [nn.Conv1d(p_ch, self.n_resch, 1)]
-            self.p_1x1_tanh += [nn.Conv1d(p_ch, self.n_resch, 1)]
+        # self.p_1x1_sigmoid = nn.ModuleList()
+        # self.p_1x1_tanh = nn.ModuleList()
+        self.p_dil_sigmoid = nn.ModuleList()
+        self.p_dil_tanh = nn.ModuleList()
+        for d in self.dilations:
+            # self.p_1x1_sigmoid += [nn.Conv1d(p_ch, self.n_resch, 1)]
+            # self.p_1x1_tanh += [nn.Conv1d(p_ch, self.n_resch, 1)]
+            self.p_dil_sigmoid += [CausalConv1d(p_ch, self.n_resch, self.kernel_size, d)]
+            self.p_dil_tanh += [CausalConv1d(p_ch, self.n_resch, self.kernel_size, d)]
 
     def forward(self, x, h, p=None):
         """FORWARD CALCULATION.
@@ -180,7 +184,7 @@ class WaveNetPulse(WaveNet):
                                                   self.dil_sigmoid[l], self.dil_tanh[l],
                                                   self.aux_1x1_sigmoid[l], self.aux_1x1_tanh[l],
                                                   self.skip_1x1[l], self.res_1x1[l],
-                                                  p, self.p_1x1_sigmoid[l], self.p_1x1_tanh[l], mcep)
+                                                  p, self.p_dil_sigmoid[l], self.p_dil_tanh[l], mcep)
             skip_connections.append(skip)
 
         # skip-connection part
@@ -193,7 +197,7 @@ class WaveNetPulse(WaveNet):
                           dil_sigmoid, dil_tanh,
                           aux_1x1_sigmoid, aux_1x1_tanh,
                           skip_1x1, res_1x1,
-                          p=None, p_1x1_sigmoid=None, p_1x1_tanh=None, mcep=None):
+                          p=None, p_dil_sigmoid=None, p_dil_tanh=None, mcep=None):
         """
 
         Visualization of tensor connection:
@@ -219,7 +223,7 @@ class WaveNetPulse(WaveNet):
 
         output_tanh = dil_tanh(x)
         # aux_output_tanh = aux_1x1_tanh(h)
-        p_output_tanh = p_1x1_tanh(p)
+        p_output_tanh = p_dil_tanh(p)
 
         # print(output_sigmoid.shape, aux_output_sigmoid.shape, p_output_sigmoid.shape)
         output = torch.sigmoid(output_sigmoid + aux_output_sigmoid) * \
@@ -231,7 +235,7 @@ class WaveNetPulse(WaveNet):
         skip = skip_1x1(output)
         output = res_1x1(output)
         # output = output + x
-        output = output + x[:, :, output.shape[2]:]  # B x C x T_output
+        output = output + x[:, :, -output.shape[2]:]  # B x C x T_output
         return output, skip
 
     def _generate_residual_forward(self, x, h,
@@ -292,7 +296,7 @@ class WaveNetPulse(WaveNet):
                                                self.dil_sigmoid[l], self.dil_tanh[l],
                                                self.aux_1x1_sigmoid[l], self.aux_1x1_tanh[l],
                                                self.skip_1x1[l], self.res_1x1[l],
-                                               p_, self.p_1x1_sigmoid[l], self.p_1x1_tanh[l])
+                                               p_, self.p_dil_sigmoid[l], self.p_dil_tanh[l])
             if d == 2 ** (self.dilation_depth - 1):
                 buffer_size.append(self.kernel_size - 1)
             else:

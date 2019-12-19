@@ -60,8 +60,7 @@ class WaveNet(nn.Module):
         self.skip_1x1 = nn.ModuleList()
         self.res_1x1 = nn.ModuleList()
         for d in self.dilations:
-            self.dil_sigmoid += [
-                nn.Sequential(CausalConv1d(self.n_resch, self.n_resch, self.kernel_size, d), nn.Dropout(0.5))]
+            self.dil_sigmoid += [CausalConv1d(self.n_resch, self.n_resch, self.kernel_size, d)]
             self.dil_tanh += [CausalConv1d(self.n_resch, self.n_resch, self.kernel_size, d)]
             self.aux_1x1_sigmoid += [nn.Conv1d(self.n_aux, self.n_resch, 1)]
             self.aux_1x1_tanh += [nn.Conv1d(self.n_aux, self.n_resch, 1)]
