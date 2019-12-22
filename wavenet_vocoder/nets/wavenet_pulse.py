@@ -295,7 +295,7 @@ class WaveNetPulse(WaveNet):
 
         # prepare buffer
         output = self._preprocess(x)
-        p = self.p_conv(p)
+        p = self.p_conv(p).contiguous()
         h_ = h[:, :, :x.size(1)]
         p_ = p[:, :, :x.size(1)]
         mcep_ = mcep[:, :, :x.size(1)]
@@ -315,7 +315,7 @@ class WaveNetPulse(WaveNet):
 
         # print(output.shape)
 
-        # TODO: p and mcep buffer
+
         # generate
         samples = x  # B x T
         end_samples = []
@@ -391,6 +391,7 @@ class WaveNetPulse(WaveNet):
                         samples = samples[idx_list]
                         h = h[idx_list]
                         p = p[idx_list]
+                        mcep = mcep[idx_list]
                         output_buffer = [out_[idx_list] for out_ in output_buffer]
                         del n_samples_list[min_idx]
                         # update min length
