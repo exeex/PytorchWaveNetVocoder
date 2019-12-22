@@ -38,4 +38,4 @@
 
 try: modify mcep : is batch norm good?
 
-## TODO: p and mcep buffer
+## TODO: decode input 對齊問題? overfitting 問題
