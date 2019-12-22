@@ -333,11 +333,11 @@ class WaveNetPulse(WaveNet):
                 # a = output.shape
                 # start = buffer_size[l] + i
                 # end = start + buffer_size[l] + 1
-                start = output.shape[2]-1 + i
-                end = start + output.shape[2]
+                start_idx = output.shape[2] - 1 + i
+                end_idx = start + output.shape[2]
 
-                p_ = p[:, :, start:end]  # B x C x T
-                mcep_ = mcep[:, :, start:end]  # B x C x T
+                p_ = p[:, :, start_idx:end_idx]  # B x C x T
+                mcep_ = mcep[:, :, start_idx:end_idx]  # B x C x T
                 # print(output.shape, p_.shape, mcep_.shape)
 
                 output, skip = self._generate_residual_forward(output, h_,
