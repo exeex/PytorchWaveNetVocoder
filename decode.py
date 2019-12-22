@@ -185,10 +185,10 @@ def decode_generator(feat_list,
 
             # convert to torch variable
             batch_x = torch.from_numpy(batch_x).long()  # B, 1
-            batch_p = torch.from_numpy(batch_p).float().transpose(1, 2)  # B, C=1, T
+            batch_p = torch.from_numpy(batchprint_p).float().transpose(1, 2)  # B, C=1, T
             batch_h = torch.from_numpy(batch_h).float().transpose(1, 2)  # B, C, T(Frame)
 
-            print(batch_x.shape, batch_p.shape, batch_h.shape)
+            # print(batch_x.shape, batch_p.shape, batch_h.shape)
 
             # send to cuda
             if torch.cuda.is_available():

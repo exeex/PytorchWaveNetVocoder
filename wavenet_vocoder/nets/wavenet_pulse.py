@@ -196,7 +196,7 @@ class WaveNetPulse(WaveNet):
                           dil_sigmoid, dil_tanh,
                           aux_1x1_sigmoid, aux_1x1_tanh,
                           skip_1x1, res_1x1,
-                          p=None, p_dil_sigmoid=None, p_dil_tanh=None, mcep=None):
+                          p=None, p_dil_sigmoid=None, p_dil_tanh=None, mcep=None, mode=0):
         """
 
         Visualization of tensor connection:
@@ -212,18 +212,20 @@ class WaveNetPulse(WaveNet):
        [mcep]____|   |___(1x1)______(+)______(sigm)____|
 
 
+        for fast generate mode = -1
+        for training mode = 0
+
         """
         # print('mcep_s', mcep.shape)
         mcep = self.mcep_norm(mcep)  # TODO: check mcep mean, max, min?
         p = p * torch.relu(mcep)
-
-        output_sigmoid = dil_sigmoid(x)
+        output_sigmoid = dil_sigmoid(x)[:, :, mode:]
         aux_output_sigmoid = aux_1x1_sigmoid(h)
         # p_output_sigmoid = p_1x1_sigmoid(p)
 
-        output_tanh = dil_tanh(x)
+        output_tanh = dil_tanh(x)[:, :, mode:]
         # aux_output_tanh = aux_1x1_tanh(h)
-        p_output_tanh = p_dil_tanh(p)
+        p_output_tanh = p_dil_tanh(p)[:, :, mode:]
 
         # print(x.shape, p.shape)
 
@@ -237,7 +239,7 @@ class WaveNetPulse(WaveNet):
         skip = skip_1x1(output)
         output = res_1x1(output)
         # output = output + x
-        output = output + x[:, :, -output.shape[2]:]  # B x C x T_output
+        output = output + x[:, :, mode:]  # B x C x T_output
         return output, skip
 
     def _generate_residual_forward(self, x, h,
@@ -250,7 +252,7 @@ class WaveNetPulse(WaveNet):
                                       dil_sigmoid, dil_tanh,
                                       aux_1x1_sigmoid, aux_1x1_tanh,
                                       skip_1x1, res_1x1,
-                                      p, p_1x1_sigmoid, p_1x1_tanh, mcep)
+                                      p, p_1x1_sigmoid, p_1x1_tanh, mcep, mode=-1)
 
     def batch_fast_generate(self, x, h, n_samples_list, *args, intervals=None, mode="sampling"):
         """GENERATE WAVEFORM WITH FAST ALGORITHM IN BATCH MODE.
@@ -329,10 +331,14 @@ class WaveNetPulse(WaveNet):
             skip_connections = []
             for l, d in enumerate(self.dilations):
                 # a = output.shape
-                p_ = p[:, :, buffer_size[l]+i:]  # B x C x T
-                p_ = p_[:, :, -buffer_size[l]:]  # B x C x T
-                mcep_ = mcep[:, :, buffer_size[l]+i:]  # B x C x T
-                mcep_ = mcep_[:, :, -buffer_size[l]:]  # B x C x T
+                # start = buffer_size[l] + i
+                # end = start + buffer_size[l] + 1
+                start = output.shape[2]-1 + i
+                end = start + output.shape[2]
+
+                p_ = p[:, :, start:end]  # B x C x T
+                mcep_ = mcep[:, :, start:end]  # B x C x T
+                # print(output.shape, p_.shape, mcep_.shape)
 
                 output, skip = self._generate_residual_forward(output, h_,
                                                                self.dil_sigmoid[l], self.dil_tanh[l],
