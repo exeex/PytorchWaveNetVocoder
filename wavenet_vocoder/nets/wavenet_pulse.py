@@ -333,8 +333,8 @@ class WaveNetPulse(WaveNet):
                 # a = output.shape
                 # start = buffer_size[l] + i
                 # end = start + buffer_size[l] + 1
-                start_idx = output.shape[2] - 1 + i
-                end_idx = start + output.shape[2]
+                start_idx = int(output.shape[2] - 1 + i)
+                end_idx = int(start + output.shape[2])
 
                 p_ = p[:, :, start_idx:end_idx]  # B x C x T
                 mcep_ = mcep[:, :, start_idx:end_idx]  # B x C x T
