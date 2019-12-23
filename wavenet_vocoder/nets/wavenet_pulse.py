@@ -341,12 +341,12 @@ class WaveNetPulse(WaveNet):
                 # a = output.shape
                 # start = buffer_size[l] + i
                 # end = start + buffer_size[l] + 1
-                start_idx = samples.size(-1) - 1
-                end_idx = start_idx + (2 << l)
+                end_idx = samples.size(-1) - 1
+                start_idx = end_idx - (2 << l) + 1
                 # print(start_idx, end_idx)
 
-                p_ = p[:, :, start_idx:end_idx]  # B x C x T
-                mcep_ = mcep[:, :, start_idx:end_idx]  # B x C x T
+                p_ = p[:, :, start_idx:end_idx+1]  # B x C x T
+                mcep_ = mcep[:, :, start_idx:end_idx+1]  # B x C x T
                 # print(output.shape, p_.shape, mcep_.shape)
 
                 output, skip = self._generate_residual_forward(output, h_,
