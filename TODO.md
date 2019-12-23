@@ -38,4 +38,5 @@
 
 try: modify mcep : is batch norm good?
 
-## TODO: decode input 對齊問題? overfitting 問題
+## TODO: decode input 對齊問題? -> 多review幾次code
+## TODO: overfitting 問題? -> try run train set
