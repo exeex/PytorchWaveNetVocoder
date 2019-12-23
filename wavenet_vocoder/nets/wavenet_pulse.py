@@ -16,6 +16,8 @@ from torch import nn
 from .wavenet_utils import CausalConv1d, UpSampling, OneHot
 from .wavenet import WaveNet
 
+import matplotlib.pyplot as plt
+
 
 class Residual1d(nn.Module):
     def __init__(self, *modules):
@@ -164,7 +166,7 @@ class WaveNetPulse(WaveNet):
 
         """
         # preprocess
-        output = self._preprocess(x)  # dilated conv x
+        output = self._preprocess(x)  # B x 20960 -> B x 512 x 20960
 
         # extract mcep
         mcep = h[:, 1:-1, :]  # h : mcep[25]
@@ -295,7 +297,12 @@ class WaveNetPulse(WaveNet):
 
         # prepare buffer
         output = self._preprocess(x)
+
+
+
         p = self.p_conv(p).contiguous()
+        # print(x.shape, p.shape, h.shape, mcep.shape)
+
         h_ = h[:, :, :x.size(1)]
         p_ = p[:, :, :x.size(1)]
         mcep_ = mcep[:, :, :x.size(1)]
@@ -313,8 +320,9 @@ class WaveNetPulse(WaveNet):
                 buffer_size.append(d * 2 * (self.kernel_size - 1))
             output_buffer.append(output[:, :, -buffer_size[l] - 1: -1])
 
+        # zz = buffer_size
+        # xx = output_buffer
         # print(output.shape)
-
 
         # generate
         samples = x  # B x T
@@ -322,19 +330,20 @@ class WaveNetPulse(WaveNet):
         start = time.time()
         for i in range(max_n_samples):
             output = samples[:, -self.kernel_size * 2 + 1:]  # B x T
-            # print('output_s',output.shape)
-            # print('pshape', p.shape, 'sample_shape', samples.shape)
-            output = self._preprocess(output)  # B x C x T
+            output = self._preprocess(output)  # B x C x T # 26 x 512 x 3
+            # print(samples.size(-1) - 1)
             h_ = h[:, :, samples.size(-1) - 1].contiguous().unsqueeze(-1)  # B x C x 1
-            # p_ = p[:, :, samples.size(-1) - 1].contiguous().unsqueeze(-1)  # B x C x 1
+            zz = output.shape
             output_buffer_next = []
             skip_connections = []
+
             for l, d in enumerate(self.dilations):
                 # a = output.shape
                 # start = buffer_size[l] + i
                 # end = start + buffer_size[l] + 1
-                start_idx = (2 << l) + i
-                end_idx = start_idx + (2 << l) + 1
+                start_idx = samples.size(-1) - 1
+                end_idx = start_idx + (2 << l)
+                # print(start_idx, end_idx)
 
                 p_ = p[:, :, start_idx:end_idx]  # B x C x T
                 mcep_ = mcep[:, :, start_idx:end_idx]  # B x C x T
@@ -351,6 +360,7 @@ class WaveNetPulse(WaveNet):
                 output_buffer_next.append(output[:, :, -buffer_size[l]:])
                 skip_connections.append(skip)
 
+            # print('!!!!!!!')
             # update buffer
             output_buffer = output_buffer_next
 
