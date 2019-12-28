@@ -219,11 +219,11 @@ class WaveNetPulse(WaveNet):
 
         """
         # print('mcep_s', mcep.shape)
-        mcep = self.mcep_norm(mcep)  # TODO: check mcep mean, max, min?
+        mcep = self.mcep_norm(mcep)
         p = p * torch.relu(mcep)
         output_sigmoid = dil_sigmoid(x)[:, :, mode:]
         aux_output_sigmoid = aux_1x1_sigmoid(h)
-        # p_output_sigmoid = p_1x1_sigmoid(p)
+        p_output_sigmoid = p_dil_sigmoid(p)[:, :, mode:]
 
         output_tanh = dil_tanh(x)[:, :, mode:]
         # aux_output_tanh = aux_1x1_tanh(h)
@@ -232,7 +232,7 @@ class WaveNetPulse(WaveNet):
         # print(x.shape, p.shape)
 
         # print(output_sigmoid.shape, aux_output_sigmoid.shape, p_output_sigmoid.shape)
-        output = torch.sigmoid(output_sigmoid + aux_output_sigmoid) * \
+        output = torch.sigmoid(output_sigmoid + aux_output_sigmoid + p_output_sigmoid) * \
                  torch.tanh(output_tanh + p_output_tanh)
 
         # output = torch.sigmoid(output_sigmoid + aux_output_sigmoid + p_output_sigmoid) * \
@@ -298,8 +298,6 @@ class WaveNetPulse(WaveNet):
         # prepare buffer
         output = self._preprocess(x)
 
-
-
         p = self.p_conv(p).contiguous()
         # print(x.shape, p.shape, h.shape, mcep.shape)
 
@@ -345,8 +343,8 @@ class WaveNetPulse(WaveNet):
                 start_idx = end_idx - (2 << l) + 1
                 # print(start_idx, end_idx)
 
-                p_ = p[:, :, start_idx:end_idx+1]  # B x C x T
-                mcep_ = mcep[:, :, start_idx:end_idx+1]  # B x C x T
+                p_ = p[:, :, start_idx:end_idx + 1]  # B x C x T
+                mcep_ = mcep[:, :, start_idx:end_idx + 1]  # B x C x T
                 # print(output.shape, p_.shape, mcep_.shape)
 
                 output, skip = self._generate_residual_forward(output, h_,
