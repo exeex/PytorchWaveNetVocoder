@@ -35,14 +35,22 @@ from time import gmtime, strftime
 # resume = "/home/cswu/research/PytorchWaveNetVocoder/pulse_repeat3/checkpoint-200000.pkl"
 resume = None
 
-os.chdir('egs/arctic/sdp')
+# os.chdir('egs/arctic/sdp')
 
+# wav_list_test = read_txt("data/ev_slt/wav_hpf.scp")
+# feat_list_test = read_txt("data/ev_slt/feats.scp")
+# waveforms = "data/tr_slt/wav_hpf.scp"
+# feats = "data/tr_slt/feats.scp"
+# stats = "data/tr_slt/stats.h5"
+# expdir = "exp/pulse_repeat1_1227"
+
+os.chdir('/home/cswu/research/PytorchWaveNetVocoder/augment')
 wav_list_test = read_txt("data/ev_slt/wav_hpf.scp")
 feat_list_test = read_txt("data/ev_slt/feats.scp")
 waveforms = "data/tr_slt/wav_hpf.scp"
 feats = "data/tr_slt/feats.scp"
 stats = "data/tr_slt/stats.h5"
-expdir = "exp/pulse_repeat1_1227"
+expdir = "exp/pulse_repeat1_1228"
 
 writer = SummaryWriter(os.path.join(expdir, strftime('runs/%Y-%m-%d@%H_%M_%S', gmtime())))
 
