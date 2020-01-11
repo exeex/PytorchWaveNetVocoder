@@ -218,7 +218,7 @@ class WaveNetPulse(WaveNet):
         for training mode = 0
 
         """
-        # print('mcep_s', mcep.shape)
+        # print('!!!!! mcep_s', mcep.shape)
         mcep = self.mcep_norm(mcep)
         p = p * torch.relu(mcep)
         output_sigmoid = dil_sigmoid(x)[:, :, mode:]
@@ -340,7 +340,7 @@ class WaveNetPulse(WaveNet):
                 # start = buffer_size[l] + i
                 # end = start + buffer_size[l] + 1
                 end_idx = samples.size(-1) - 1
-                start_idx = end_idx - (2 << l) + 1
+                start_idx = end_idx - d*2 + 1 #TODO: check is *2 correct
                 # print(start_idx, end_idx)
 
                 p_ = p[:, :, start_idx:end_idx + 1]  # B x C x T
