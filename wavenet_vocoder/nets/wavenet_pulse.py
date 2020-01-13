@@ -138,7 +138,8 @@ class WaveNetPulse(WaveNet):
         #                               nn.LeakyReLU()))
         self.p_conv = nn.Sequential(*self.p_conv)
 
-        self.mcep_norm = nn.Sequential(nn.BatchNorm1d(p_ch), nn.LeakyReLU(p_ch))  # try?
+        # self.mcep_norm = nn.Sequential(nn.BatchNorm1d(p_ch), nn.LeakyReLU(p_ch))  # try?
+        self.mcep_preprocess = nn.Sequential(nn.Conv1d(p_ch, p_ch, 1))  # try?
 
         self.upsampling_mcep = nn.Sequential(nn.Conv1d(mcep_ch, p_ch, 1), UpSamplingSmooth(upsampling_factor))
 
@@ -219,8 +220,9 @@ class WaveNetPulse(WaveNet):
 
         """
         # print('!!!!! mcep_s', mcep.shape)
-        mcep = self.mcep_norm(mcep)
-        p = p * torch.relu(mcep)
+        # mcep = self.mcep_norm(mcep)
+        mcep = self.mcep_preprocess(mcep)
+        p = p * mcep
         output_sigmoid = dil_sigmoid(x)[:, :, mode:]
         aux_output_sigmoid = aux_1x1_sigmoid(h)
         p_output_sigmoid = p_dil_sigmoid(p)[:, :, mode:]
@@ -340,7 +342,7 @@ class WaveNetPulse(WaveNet):
                 # start = buffer_size[l] + i
                 # end = start + buffer_size[l] + 1
                 end_idx = samples.size(-1) - 1
-                start_idx = end_idx - d*2 + 1 #TODO: check is *2 correct
+                start_idx = end_idx - d * 2 + 1  # TODO: check is *2 correct
                 # print(start_idx, end_idx)
 
                 p_ = p[:, :, start_idx:end_idx + 1]  # B x C x T
