@@ -40,7 +40,6 @@ def p_trans_binary_multi_channel(p, fn=12, rand_byte=True, rand_shift=True):
     p_2 = (p[:, np.newaxis] & 0b000001000001) > 0
     p_3 = (p[:, np.newaxis] & 0b000100010001) > 0
     p_4 = (p[:, np.newaxis] & 0b001001001001) > 0
-    np.roll(p_1, axis=0)
 
     p = np.concatenate([p_1, p_2, p_3, p_4], axis=1)
     p = p.astype(np.float32)
