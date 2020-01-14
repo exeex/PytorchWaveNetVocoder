@@ -17,13 +17,30 @@ def p_trans_binary(p):
     return p
 
 
-def p_trans_binary_multi_channel(p, fn=12):
-    # p_chans = [p[:, np.newaxis] == 2 ^ n for n in range(fn)]
+def roll_byte(x: np.ndarray, n, digit=12):
+    for _ in range(n):
+        scale = ((x == 1) << digit) - (x == 1)  # find where(2^0)
+        x = x + scale
+        x = x // 2
+    return x
+
+
+def p_trans_binary_multi_channel(p, fn=12, rand_byte=True, rand_shift=True):
+
+    if rand_byte:
+        n = random.randint(0, fn - 1)
+        p = roll_byte(p, n, digit=fn)
+
+    if rand_shift:
+        shift_range = 10
+        shift = random.randint(-shift_range, shift_range)
+        np.roll(p, shift)
 
     p_1 = (p[:, np.newaxis] & 0b000000000001) > 0
     p_2 = (p[:, np.newaxis] & 0b000001000001) > 0
     p_3 = (p[:, np.newaxis] & 0b000100010001) > 0
     p_4 = (p[:, np.newaxis] & 0b001001001001) > 0
+    np.roll(p_1, axis=0)
 
     p = np.concatenate([p_1, p_2, p_3, p_4], axis=1)
     p = p.astype(np.float32)
